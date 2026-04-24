@@ -18,13 +18,14 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 ALLOWED_EXT = {"jpg", "jpeg", "png", "webp", "heic"}
 
 
-def _save_upload(file: UploadFile) -> str:
+async def _save_upload(file: UploadFile) -> str:
     ext = (file.filename or "").rsplit(".", 1)[-1].lower() or "jpg"
     if ext not in ALLOWED_EXT:
         raise HTTPException(status_code=400, detail=f"Nur {', '.join(sorted(ALLOWED_EXT))} erlaubt")
     dest = UPLOAD_DIR / f"{uuid.uuid4()}.{ext}"
+    data = await file.read()
     with open(dest, "wb") as fh:
-        fh.write(file.file.read())
+        fh.write(data)
     return str(dest)
 
 
@@ -56,7 +57,7 @@ async def scan_product_photos(
         raise HTTPException(status_code=400, detail="Keine Bilder übergeben")
     if len(files) > 6:
         raise HTTPException(status_code=400, detail="Maximal 6 Bilder auf einmal")
-    paths = [_save_upload(f) for f in files]
+    paths = [await _save_upload(f) for f in files]
 
     try:
         detected = await scan_products(paths)
@@ -129,7 +130,7 @@ async def parse_receipt_endpoint(
     file: UploadFile = File(...),
     user: dict = Depends(get_current_user),
 ):
-    path = _save_upload(file)
+    path = await _save_upload(file)
     rid = Path(path).stem
     # persist receipt metadata
     rec = {

@@ -19,7 +19,21 @@ Vollständige Anforderungen siehe `docs/lastenheft.md` (bzw. initiales User-Prom
 - Deployment: Single Docker Image (Stage 1 baut React statisch, Stage 2 Python-Runtime serviert SPA + API). `docker-compose.yml` für lokale Tests, `unraid-template.xml` für Community Applications.
 - Versionierung: `VERSION` (0.1.0), `CHANGELOG.md`, SemVer, GitHub Actions (`ghcr.io/OWNER/cookpilot`).
 
+## Was in Phase 3 Kickoff implementiert wurde (stand 2026-04-24, v0.2.0)
+- **Backend NEW** `/app/backend/vision_service.py` und `/app/backend/routers/vision_router.py` mit 4 Endpoints:
+  - `POST /api/vision/scan-products` (1-6 Bilder) → OpenAI Vision erkennt Name/Marke/MHD/Menge/Confidence + matched shopping-item pro Produkt.
+  - `POST /api/vision/apply-scan` → hakt Einkaufsliste ab + legt Vorrat mit MHD an.
+  - `POST /api/vision/parse-receipt` → OpenAI Vision erkennt Store, Datum, Posten mit Preisen.
+  - `POST /api/vision/apply-receipt` → persistiert als `purchases` + hakt Einkaufsliste ab + markiert receipt applied=true.
+- **Admin-Einstellung** `vision_model` (Default `gpt-4o`) - separat konfigurierbar vom Chat-Modell.
+- **Frontend NEW** `/scan` und `/receipt-scan` Routen mit Multi-Photo-Upload, Review-Karten, mobiler Kamera-Integration.
+- Dashboard-Quick-Actions „Einkauf einräumen" und „Kassenzettel".
+- Emergent-Branding vollständig entfernt (kein Badge, kein PostHog, kein visual-edits dep).
+- Version bump 0.1.0 → 0.2.0 in `VERSION`, `CHANGELOG.md`, `backend/.env`.
+- Testing: 31/31 Backend-Tests, Frontend-Smoke via Playwright ✅.
+
 ## Was in Phase 1 implementiert wurde (stand 2026-04-24)
+- Backend-Module (/app/backend/):
 - Backend-Module (/app/backend/):
   - `server.py` - FastAPI Entry + SPA-Serve + Lifespan mit Seed-Admin.
   - `db.py`, `models.py`, `auth.py` (JWT + bcrypt), `seed.py`, `llm_service.py`, `email_service.py`.
