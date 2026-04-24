@@ -84,12 +84,26 @@ def _resolve(value, rows: dict, depth: int = 0, seen: Optional[set] = None):
 
 
 def _lidl_image_url(recipe_id: str, slug: str, aspect: str = "16x9") -> str:
+    """Fallback only - prefer using imageInfo.prefix + imageInfo.name directly."""
     if not recipe_id or not slug:
         return ""
     return (
         f"https://cdn.recipes.lidl/images-v2/recipes/de-CH/{recipe_id}/"
         f"{aspect}_fallback_{slug}.jpeg"
     )
+
+
+def _lidl_image_from_info(image_info: Optional[dict], aspect: str = "16x9") -> str:
+    """Compose the full CDN URL from the recipe's imageInfo structure."""
+    if not isinstance(image_info, dict):
+        return ""
+    name = image_info.get("name") or ""
+    prefix = image_info.get("prefix") or ""
+    if not name or not prefix:
+        return ""
+    # Strip extension from `name`
+    stem = name.rsplit(".", 1)[0]
+    return f"https://cdn.recipes.lidl/images-v2{prefix}/{aspect}_fallback_{stem}.jpeg"
 
 
 def _build_ingredient_line(ing: dict) -> dict:
@@ -172,7 +186,7 @@ async def import_from_lidl(url: str) -> dict:
             if isinstance(entry, dict) and entry.get("name"):
                 tags.append(entry["name"])
 
-    image_url = _lidl_image_url(recipe_id, slug)
+    image_url = _lidl_image_from_info(recipe.get("imageInfo")) or _lidl_image_url(recipe_id, slug)
 
     return {
         "title": recipe.get("name") or slug.replace("-", " ").title(),
@@ -220,7 +234,11 @@ async def fetch_lidl_category_index() -> list[dict]:
         r'(?P<body>[\s\S]*?)</article>',
         re.IGNORECASE,
     )
-    recipe_id_pattern = re.compile(r'/recipes/de-CH/(?P<rid>[a-f0-9-]{36})/', re.IGNORECASE)
+    # Pick the fallback jpeg URL (stable format, works everywhere).
+    image_pattern = re.compile(
+        r'(https://cdn\.recipes\.lidl/images-v2/recipes/de-CH/[a-f0-9-]{36}/16x9_fallback_[^" \s]+\.jpe?g)',
+        re.IGNORECASE,
+    )
     time_pattern = re.compile(
         r'>\s*(?:(?P<h>\d+)\s*h)?\s*(?P<m>\d+)?\s*min\s*<', re.IGNORECASE,
     )
@@ -231,9 +249,8 @@ async def fetch_lidl_category_index() -> list[dict]:
         if slug in items:
             continue
         body = m.group("body")
-        rid_m = recipe_id_pattern.search(body)
-        rid = rid_m.group("rid") if rid_m else ""
-        image = _lidl_image_url(rid, slug) if rid else ""
+        img_m = image_pattern.search(body)
+        image = img_m.group(1) if img_m else ""
 
         mins = None
         t = time_pattern.search(body)

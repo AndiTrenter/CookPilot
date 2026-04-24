@@ -4,6 +4,18 @@ Alle wichtigen Änderungen an CookPilot werden in dieser Datei dokumentiert.
 
 Format: [Keep a Changelog](https://keepachangelog.com/de/1.1.0/) · SemVer.
 
+## [0.3.0] - 2026-04
+
+### Hinzugefügt
+- **Rezept-Import aus URL** (`POST /api/recipes/import-url`): Füge eine Rezept-URL von `rezepte.lidl.ch` ein → CookPilot lädt die Seite, extrahiert Titel, Zutaten, Schritte, Bild, Kochzeit, Schwierigkeit und speichert sie in dein Rezeptbuch.
+- **Externe Rezept-Suche** direkt in `/recipes`: Suchfeld durchsucht sowohl dein eigenes Rezeptbuch als auch den Cache von 36 Rezepten von `rezepte.lidl.ch`. Ein Klick auf "In Rezeptbuch" übernimmt das Rezept samt Zutaten, Schritt-für-Schritt-Anleitung und Bild.
+- **Externer Rezept-Index** (`external_recipes` Collection): Admin kann den Index über "Index aktualisieren" oder `POST /api/recipes/external/refresh` neu einlesen.
+- Vorschau-Endpoint `POST /api/recipes/preview-url` für Clients, die vor dem Speichern prüfen wollen.
+- Rezept-Detail-Seite zeigt jetzt das Hero-Bild und einen "aus rezepte.lidl.ch"-Chip bei importierten Rezepten.
+
+### Behoben
+- Bild-URLs auf dem CDN (`cdn.recipes.lidl`) werden jetzt korrekt aus dem `imageInfo`-Payload rekonstruiert (inkl. Timestamp-Suffix) - vorher 404.
+
 ## [0.2.0] - 2026-04
 
 ### Hinzugefügt (Phase 3 Kickoff)
