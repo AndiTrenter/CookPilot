@@ -1,0 +1,47 @@
+{
+  "summary": "Phase 3 Teil 2 (URL-Import + externe Rezeptsuche) vollständig getestet. 13/13 neue Backend-Tests (test_recipe_import.py) sowie 31/31 Regressionstests (test_cookpilot_api.py + test_vision.py) bestehen grün. Frontend E2E verifiziert: Login, /recipes mit beiden Sektionen, refresh-external-btn (indexiert 36 Lidl-Rezepte), Suche 'toblerone' liefert 2 externe Treffer, Import per externer Karte (import-external-<slug>) legt Rezept an, Modal-Import (import-url-btn -> input -> confirm) navigiert zu Detail mit Lidl-Chip + Kategorie + Zeit + Schwierigkeit + Zutaten (4) + Schritten (9). Abbrechen-Button schließt Modal; ungültige URL zeigt deutsche Fehler-Toast 'Diese Quelle wird noch nicht unterstützt. Aktuell: rezepte.lidl.ch.'",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "RecipeDetail + Recipes externe Karten", "issues": ["Lidl-Bilder laden nicht (HTTP 404 in Console für alle cdn.recipes.lidl URLs). _lidl_image_url() baut https://cdn.recipes.lidl/images-v2/recipes/de-CH/{id}/16x9_fallback_{slug}.jpeg – der Pfad scheint veraltet/falsch (echter Test: HTTP 404). Funktional kein Blocker (img-Tag fällt auf alt-Text zurück), aber UX wirkt leer. Empfehlung: entweder og:image aus dem Artikel-HTML parsen (recipe.heroImage o.ä. im RSC-JSON) oder Pfad-Format verifizieren."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_recipe_import.py",
+    "/app/test_reports/pytest/pytest_recipe_import.xml",
+    "/app/test_reports/pytest/pytest_regression.xml"
+  ],
+  "action_items": [
+    "Lidl-Bild-URLs liefern 404 – Pfad-Format `/images-v2/recipes/de-CH/{id}/16x9_fallback_{slug}.jpeg` anpassen oder heroImage/og:image direkt aus dem Quell-HTML extrahieren."
+  ],
+  "critical_code_review_comments": [
+    "Routing-Reihenfolge in recipes_router.py ist korrekt: /{recipe_id} steht VOR /external/*, ABER in FastAPI prüft der Router beide Routen und findet die spezifischere zuerst – verifiziert: GET /api/recipes/external/search & /external/status liefern 200, nicht 404 'Rezept nicht gefunden'. Gut.",
+    "import-url ist idempotent pro (source, owner_id) – zweiter Call gibt existierendes Rezept zurück. Teststate bestätigt.",
+    "preview-url + import-url unterscheiden sauber zwischen 400 (RecipeImportError, z.B. unsupported domain / bad scheme) und 502 (Netzwerkfehler). Saubere Exception-Hygiene.",
+    "external/refresh nutzt require_admin + upsert – non-admin bekommt 403 (verifiziert).",
+    "recipe_import_service.py: _parse_flight parst RSC flight chunks und rekonstruiert Rows; robust gegen Zyklen durch seen-Set. Fallback in fetch_lidl_category_index greift auf simples <a href=\"/rezepte/...\"> scan zurück, wenn article-Pattern nichts findet – defensiv programmiert.",
+    "Minor: _build_ingredient_line rundet quantityTo-Range zum Mittelwert (qty+to)/2 – für Rezepte wie '200-250g' ergibt das 225g. Dokumentieren wäre nett (Nutzer erwartet evtl. den Min-Wert).",
+    "Minor: fetch_lidl_category_index schreibt pro Rezept ein upsert – bei 36 Items kein Problem, aber für skalierung könnte man bulk_write verwenden.",
+    "Minor: _lidl_image_url erzeugt URLs gegen cdn.recipes.lidl (ohne TLD .ch) – Live-Tests zeigen HTTP 404 für ALLE generierten Bild-URLs. Die Domain selbst existiert als gTLD .lidl, aber der konkrete Pfad ist falsch. Siehe action_items.",
+    "external_recipes Collection wird bei DELETE-Operationen nicht bereinigt – falls ein Rezept vom Lidl-Index verschwindet, bleibt es stale. Empfehlung: In external/refresh alle Einträge mit (source_name, indexed_at < now) löschen – einfache GC-Strategie.",
+    "ImportUrlPreview.ingredients ist als `list` typisiert (ohne inneres Schema) – technisch OK, aber ein Pydantic-Nested-Modell (z.B. IngredientLine) würde OpenAPI-Schema-Docs verbessern."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_recipe_import.py"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "test_credentials": "admin@cookpilot.local / CookPilot!2026",
+  "seed_data_creation": "Tests erzeugen über import-url echte Rezepte (z.B. 'Erdbeer-Rhabarber-Konfi', 'Schokoladenpudding mit Toblerone') und bereinigen das 'erdbeer-rhabarber-konfi'-Rezept am Ende. Externe Index-Einträge (36 Stück) bleiben in der external_recipes Collection erhalten (gewollt für Suche).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Neue Testdatei: /app/backend/tests/test_recipe_import.py (13 Tests). Regression: pytest /app/backend/tests/ -v deckt jetzt 44 Tests ab. Relevante data-testids auf /recipes: import-url-btn, import-url-input, import-url-confirm, import-url-cancel, refresh-external-btn, recipe-search-input, recipe-search-btn, external-card-<slug>, import-external-<slug>, external-open-<slug>, recipe-card-<id>. Die Review-Spec nennt 'external-card-cookpilot-kitchen' – in der Implementierung ist der Suffix dynamisch (der Slug des Lidl-Rezepts), nicht der Host-String. Tests wurden entsprechend generisch gegen das Präfix geschrieben. URL-Import scraped LIVE gegen rezepte.lidl.ch (bestätigt stabil). Bekannter kosmetischer Bug: Lidl-Bilder laden 404.",
+  "rca of the issue": "Nur kosmetisch: _lidl_image_url baut Pfad gegen cdn.recipes.lidl, aber 100% der generierten Bild-URLs liefern HTTP 404 (echter curl + Browser-Console bestätigen). Die Domain ist erreichbar, das Pfadmuster ist vermutlich veraltet (Lidl hat wohl v2->v3 gewechselt oder nutzt einen anderen Slug-Prefix). Mitigation: heroImage-Feld aus dem RSC-Payload nehmen (ist im recipe-Dict enthalten) statt selbst zu rekonstruieren."
+}

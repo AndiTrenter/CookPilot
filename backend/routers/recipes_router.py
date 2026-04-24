@@ -2,11 +2,34 @@
 from typing import List, Optional
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query
-from db import recipes
-from auth import get_current_user
+from pydantic import BaseModel
+from db import recipes, db
+from auth import get_current_user, require_admin
 from models import Recipe, RecipeCreate, RecipeUpdate
+from recipe_import_service import import_from_url, fetch_lidl_category_index, RecipeImportError
 
 router = APIRouter(prefix="/api/recipes", tags=["recipes"])
+
+external_recipes = db.external_recipes
+
+
+class ImportUrlRequest(BaseModel):
+    url: str
+
+
+class ImportUrlPreview(BaseModel):
+    title: str
+    description: str = ""
+    category: str = ""
+    tags: List[str] = []
+    servings: int = 4
+    cook_time_min: Optional[int] = None
+    difficulty: Optional[str] = None
+    ingredients: list
+    steps: List[str]
+    image_url: Optional[str] = None
+    source: Optional[str] = None
+    source_url: Optional[str] = None
 
 
 @router.get("", response_model=List[Recipe])
@@ -80,3 +103,109 @@ async def toggle_favorite(recipe_id: str, user: dict = Depends(get_current_user)
     await recipes.update_one({"id": recipe_id}, {"$set": {"favorite": new_val, "updated_at": datetime.now(timezone.utc).isoformat()}})
     doc["favorite"] = new_val
     return Recipe(**doc)
+
+
+
+# ---------------------------------------------------------------------------
+# Import from external URL
+# ---------------------------------------------------------------------------
+@router.post("/preview-url", response_model=ImportUrlPreview)
+async def preview_from_url(body: ImportUrlRequest, user: dict = Depends(get_current_user)):
+    try:
+        parsed = await import_from_url(body.url)
+    except RecipeImportError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Fehler beim Laden: {exc}")
+    return ImportUrlPreview(**parsed)
+
+
+@router.post("/import-url", response_model=Recipe)
+async def import_from_url_endpoint(body: ImportUrlRequest, user: dict = Depends(get_current_user)):
+    try:
+        parsed = await import_from_url(body.url)
+    except RecipeImportError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Fehler beim Laden: {exc}")
+
+    # Deduplicate by source (e.g. "lidl:<slug>") for the user
+    existing = await recipes.find_one(
+        {"source": parsed.get("source"), "owner_id": user["id"]},
+        {"_id": 0},
+    )
+    if existing:
+        return Recipe(**existing)
+
+    payload = {
+        "title": parsed["title"],
+        "description": parsed.get("description") or "",
+        "category": parsed.get("category") or "",
+        "tags": parsed.get("tags") or [],
+        "servings": parsed.get("servings") or 4,
+        "cook_time_min": parsed.get("cook_time_min"),
+        "difficulty": parsed.get("difficulty"),
+        "ingredients": parsed.get("ingredients") or [],
+        "steps": parsed.get("steps") or [],
+        "image_url": parsed.get("image_url"),
+        "source": parsed.get("source") or "import",
+    }
+    r = Recipe(**payload, owner_id=user["id"])
+    await recipes.insert_one(r.model_dump())
+    return r
+
+
+# ---------------------------------------------------------------------------
+# External catalog (rezepte.lidl.ch search)
+# ---------------------------------------------------------------------------
+@router.get("/external/search")
+async def external_search(
+    q: str = Query("", description="Suchbegriff"),
+    limit: int = 20,
+    user: dict = Depends(get_current_user),
+):
+    """Search our cached external recipe index (case-insensitive)."""
+    mongo_query: dict = {"source_name": "lidl_monsieur_cuisine"}
+    if q.strip():
+        mongo_query["title"] = {"$regex": q.strip(), "$options": "i"}
+    docs = await external_recipes.find(mongo_query, {"_id": 0}).limit(limit).to_list(limit)
+    return {"count": len(docs), "results": docs}
+
+
+@router.post("/external/refresh")
+async def external_refresh(user: dict = Depends(require_admin)):
+    try:
+        items = await fetch_lidl_category_index()
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Index-Aktualisierung fehlgeschlagen: {exc}")
+
+    now = datetime.now(timezone.utc).isoformat()
+    written = 0
+    for it in items:
+        doc = {
+            **it,
+            "source_name": "lidl_monsieur_cuisine",
+            "indexed_at": now,
+        }
+        await external_recipes.update_one(
+            {"source_name": doc["source_name"], "slug": doc["slug"]},
+            {"$set": doc},
+            upsert=True,
+        )
+        written += 1
+    return {"ok": True, "indexed": written, "indexed_at": now}
+
+
+@router.get("/external/status")
+async def external_status(user: dict = Depends(get_current_user)):
+    cnt = await external_recipes.count_documents({"source_name": "lidl_monsieur_cuisine"})
+    latest = await external_recipes.find_one(
+        {"source_name": "lidl_monsieur_cuisine"},
+        {"_id": 0, "indexed_at": 1},
+        sort=[("indexed_at", -1)],
+    )
+    return {
+        "source": "rezepte.lidl.ch · Monsieur Cuisine Smart",
+        "count": cnt,
+        "last_indexed_at": latest.get("indexed_at") if latest else None,
+    }

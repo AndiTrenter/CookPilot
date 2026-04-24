@@ -46,10 +46,16 @@ export default function RecipeDetail() {
                     </button>
                 </div>
                 {r.description && <p className="text-lg text-[color:var(--muted)] mt-3">{r.description}</p>}
+                {r.image_url && (
+                    <div className="mt-6 rounded-3xl overflow-hidden aspect-video bg-[color:var(--surface-2)]">
+                        <img src={r.image_url} alt={r.title} className="w-full h-full object-cover" />
+                    </div>
+                )}
                 <div className="flex flex-wrap gap-2 mt-4">
                     {r.difficulty && <span className="cp-chip">{r.difficulty}</span>}
                     {r.cook_time_min && <span className="cp-chip"><Clock className="h-3 w-3 mr-1" /> {r.cook_time_min} Min</span>}
                     <span className="cp-chip">{r.servings} Portionen</span>
+                    {r.source && r.source.startsWith("lidl:") && <span className="cp-chip cp-chip-ok">aus rezepte.lidl.ch</span>}
                 </div>
             </div>
 
