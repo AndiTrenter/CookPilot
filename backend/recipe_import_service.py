@@ -86,16 +86,6 @@ def _resolve(value, rows: dict, depth: int = 0, seen: Optional[set] = None):
     return value
 
 
-def _lidl_image_url(recipe_id: str, slug: str, aspect: str = "16x9") -> str:
-    """Fallback only - prefer using imageInfo.prefix + imageInfo.name directly."""
-    if not recipe_id or not slug:
-        return ""
-    return (
-        f"https://cdn.recipes.lidl/images-v2/recipes/de-CH/{recipe_id}/"
-        f"{aspect}_fallback_{slug}.jpeg"
-    )
-
-
 def _lidl_image_from_info(image_info: Optional[dict], aspect: str = "16x9") -> str:
     """Compose the full CDN URL from the recipe's imageInfo structure."""
     if not isinstance(image_info, dict):
@@ -104,7 +94,6 @@ def _lidl_image_from_info(image_info: Optional[dict], aspect: str = "16x9") -> s
     prefix = image_info.get("prefix") or ""
     if not name or not prefix:
         return ""
-    # Strip extension from `name`
     stem = name.rsplit(".", 1)[0]
     return f"https://cdn.recipes.lidl/images-v2{prefix}/{aspect}_fallback_{stem}.jpeg"
 
@@ -189,7 +178,7 @@ async def import_from_lidl(url: str) -> dict:
             if isinstance(entry, dict) and entry.get("name"):
                 tags.append(entry["name"])
 
-    image_url = _lidl_image_from_info(recipe.get("imageInfo")) or _lidl_image_url(recipe_id, slug)
+    image_url = _lidl_image_from_info(recipe.get("imageInfo"))
 
     return {
         "title": recipe.get("name") or slug.replace("-", " ").title(),
