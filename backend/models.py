@@ -67,7 +67,7 @@ class InviteCreate(BaseModel):
 class AcceptInviteRequest(BaseModel):
     token: str
     name: str
-    password: str
+    password: str = Field(min_length=8)
 
 
 # ---------- RECIPES ----------
