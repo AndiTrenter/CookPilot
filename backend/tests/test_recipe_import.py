@@ -55,7 +55,9 @@ def test_preview_url_invalid_scheme(admin_headers):
 def test_preview_url_unsupported_domain(admin_headers):
     r = requests.post(f"{API}/recipes/preview-url", json={"url": "https://example.com"}, headers=admin_headers)
     assert r.status_code == 400
-    assert "unterst" in r.text.lower() or "support" in r.text.lower()
+    # Generic JSON-LD fallback now handles any URL; example.com has no Recipe JSON-LD
+    body = r.text.lower()
+    assert "unterst" in body or "json-ld" in body or "rezept" in body
 
 
 # ---------- import-url (idempotent) ----------
@@ -89,7 +91,8 @@ def test_import_url_invalid_scheme(admin_headers):
 def test_import_url_unsupported_domain(admin_headers):
     r = requests.post(f"{API}/recipes/import-url", json={"url": "https://example.com/foo"}, headers=admin_headers)
     assert r.status_code == 400
-    assert "unterst" in r.text.lower()
+    body = r.text.lower()
+    assert "unterst" in body or "json-ld" in body or "rezept" in body
 
 
 # ---------- external/refresh ----------

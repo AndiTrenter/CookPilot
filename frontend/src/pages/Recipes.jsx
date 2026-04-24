@@ -212,10 +212,14 @@ export default function Recipes() {
                 <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-4">
                     <div>
                         <h2 className="font-display text-2xl font-bold flex items-center gap-2">
-                            <Globe className="h-6 w-6 text-[color:var(--primary)]" /> Aus rezepte.lidl.ch
+                            <Globe className="h-6 w-6 text-[color:var(--primary)]" /> Aus Rezept-Quellen
                         </h2>
                         <p className="text-xs text-[color:var(--muted)] mt-1">
-                            {extStatus?.count ? `${extStatus.count} Rezepte im Cache · zuletzt aktualisiert ${extStatus.last_indexed_at ? new Date(extStatus.last_indexed_at).toLocaleString("de-DE") : "nie"}` : "Noch kein Index - bitte aktualisieren"}
+                            {search
+                                ? "Live-Suche bei rezepte.lidl.ch und lidl-kochen.de"
+                                : extStatus?.count
+                                    ? `${extStatus.count} Lidl-CH Rezepte im Cache · zuletzt aktualisiert ${extStatus.last_indexed_at ? new Date(extStatus.last_indexed_at).toLocaleString("de-DE") : "nie"} · Suche für Lidl-DE einfach oben eingeben`
+                                    : "Tippe oben einen Suchbegriff ein - CookPilot sucht live auf rezepte.lidl.ch und lidl-kochen.de"}
                         </p>
                     </div>
                     <button onClick={refreshIndex} disabled={refreshing} className="cp-btn-secondary" data-testid="refresh-external-btn">
@@ -226,11 +230,15 @@ export default function Recipes() {
                 {extLoading ? (
                     <div className="cp-card py-8 text-center text-[color:var(--muted)]"><Loader2 className="h-6 w-6 animate-spin inline mr-2" /> Suche…</div>
                 ) : external.count === 0 ? (
-                    <div className="cp-card text-center py-10 text-[color:var(--muted)]">Keine Treffer bei rezepte.lidl.ch für „{search || "…"}".</div>
+                    <div className="cp-card text-center py-10 text-[color:var(--muted)]">
+                        {search ? `Keine Treffer für „${search}".` : "Tippe oben einen Suchbegriff ein."}
+                    </div>
                 ) : (
                     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {external.results.map((r) => (
-                            <div key={r.slug} className="cp-tile flex flex-col gap-3" data-testid={`external-card-${r.slug}`}>
+                        {external.results.map((r) => {
+                            const srcLabel = r.source_name === "lidl_kochen" ? "Lidl DE" : "Lidl CH";
+                            return (
+                            <div key={`${r.source_name || "lidl"}-${r.slug}`} className="cp-tile flex flex-col gap-3" data-testid={`external-card-${r.slug}`}>
                                 {r.image_url && (
                                     <a href={r.source_url} target="_blank" rel="noreferrer" className="block -mx-6 -mt-6 mb-1 aspect-video overflow-hidden rounded-t-3xl bg-[color:var(--surface-2)]">
                                         <img src={r.image_url} alt="" className="w-full h-full object-cover" loading="lazy" />
@@ -238,9 +246,12 @@ export default function Recipes() {
                                 )}
                                 <h3 className="font-display text-lg font-bold leading-snug">{r.title}</h3>
                                 <div className="flex flex-wrap gap-2">
-                                    <span className="cp-chip cp-chip-ok">Lidl</span>
+                                    <span className="cp-chip cp-chip-ok">{srcLabel}</span>
                                     {r.difficulty && <span className="cp-chip">{r.difficulty}</span>}
                                     {r.cook_time_min && <span className="cp-chip"><Clock className="h-3 w-3 mr-1" /> {r.cook_time_min} Min</span>}
+                                    {typeof r.likes === "number" && r.likes > 0 && (
+                                        <span className="cp-chip"><Heart className="h-3 w-3 mr-1" /> {r.likes}</span>
+                                    )}
                                 </div>
                                 <div className="flex gap-2 mt-auto pt-4 border-t border-[color:var(--border)]">
                                     <button
@@ -257,7 +268,8 @@ export default function Recipes() {
                                     </a>
                                 </div>
                             </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </section>

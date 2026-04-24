@@ -1,0 +1,47 @@
+{
+  "summary": "Version 0.4.0 (Lidl-DE + generischer JSON-LD Fallback) vollständig getestet. Backend: 57/57 grün über alle 4 Test-Dateien (test_cookpilot_api 17, test_lidl_kochen 13 NEU, test_recipe_import 12, test_vision 15). Neue Feature-Abdeckung: lidl-kochen.de URL-Import 'Gebratener Reis mit Gemüse' (13 Zutaten strukturiert, 6 Schritte, 30 Min, 4 Portionen, Kategorie 'Mittagessen', source 'lidl_kochen:gebratener-reis-mit-gemuese-150971'), idempotenter Import, live-search 'lasagne' → 20 Lidl-DE Treffer mit source_name='lidl_kochen', live-search Validierungs-Fehler (422 ohne q, 400 für unknown source), kombinierte /external/search liefert Cache+Live, Ingredient-Parser '300 g Langkornreis' → {name:'Langkornreis', amount:300, unit:'g'}, ISO-Parser 'PT30M'→30 + 'PT1H15M'→75. Regression: alle bestehenden Flows (auth, shopping, pantry, vision, widgets, aria, chat, Lidl-CH Import) weiter grün. Frontend: Login OK, /recipes 'lasagne' Suche rendert 20 externe Karten alle mit Chip 'Lidl DE', Titel/Bilder/Likes korrekt. UI-Import-Modal (https://www.lidl-kochen.de/rezeptwelt/gebratener-reis-mit-gemuese-150971) navigiert zu Detail-Seite mit Titel, Mittagessen-Chip, 30 Min, 4 Portionen, Image. Header-Text 'Live-Suche bei rezepte.lidl.ch und lidl-kochen.de' korrekt.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_lidl_kochen.py",
+    "/app/backend/tests/test_recipe_import.py",
+    "/app/backend/tests/test_cookpilot_api.py",
+    "/app/backend/tests/test_vision.py",
+    "/app/test_reports/pytest/pytest_lidl_kochen.xml",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "recipe_import_service.import_from_url dispatcht sauber: Host-Match rezepte.lidl.ch → RSC-Parser, www.lidl-kochen.de → import_from_jsonld(source_prefix='lidl_kochen'), alles andere → import_from_jsonld(source_prefix='url'). Bei generischem Pfad werden RecipeImportError durchgereicht, sonstige Exceptions mit hübscher deutscher Fehlermeldung gemappt – sauber.",
+    "search_lidl_kochen verwendet korrekt den Query-Param 's' (nicht 'text') – wie im Agent-Kontext-Hinweis erwähnt. perPage wird 1..100 geklemmt, Antwortfelder werden defensiv normalisiert (likeCount=0 Default, difficulty durch Map).",
+    "_parse_ingredient ist clever aber fragil: Regex mit drei Alternativen + Fraktions-Map. Für 'PT' oder reine Fraktionen ('½ TL Salz') würde es an der Unit scheitern. Edge-Case-Coverage wäre wünschenswert.",
+    "Routenreihenfolge in recipes_router.py: /{recipe_id} liegt VOR /external/* und /preview-url/import-url. FastAPI matched trotzdem korrekt weil Pfad-Parameter kein '/' enthält – aber das ist Glück. Empfehlung: spezifischere Routen (/preview-url, /import-url, /external/*) explizit VOR /{recipe_id} registrieren, damit zukünftige sub-path Erweiterungen nicht brechen.",
+    "external/live-search hat min_length=1 und validiert source-Whitelist (nur 'lidl_kochen'). Gut erweiterbar – aber die erlaubten Quellen sollten als Konstante/Enum abgelegt werden, nicht als if-Zweig.",
+    "import_from_jsonld behandelt @graph, list- und dict-@type robust. recipeIngredient-Parsing nutzt Best-Effort Heuristik – Daten-Qualität hängt stark von der Quelle ab (z.B. 'chefkoch.de' könnte abweichen). Aktuell keine Unit-Normalisierung (EL/TL vs 'Essl.'/'Teel.').",
+    "_build_ingredient_line: quantityTo-Range → Mittelwert (qty+to)/2 ist dokumentationswürdig. User könnte Min erwarten.",
+    "Bekannte kosmetische Schwäche aus iteration_3: Lidl-CH Bild-URLs liefern 404. Für Lidl-DE wird image_url aus photo-Feld genommen – lädt korrekt (im Screenshot verifiziert). Das ist die empfohlene Richtung auch für Lidl-CH (heroImage direkt statt rekonstruierter Pfad).",
+    "Code-Duplikation: _lidl_image_url und _lidl_image_from_info stehen beide drin, nur eine wird effektiv über imageInfo genutzt. _lidl_image_url als Fallback ist defekt (404), sollte entfernt oder repariert werden.",
+    "Datei-Größe recipe_import_service.py 544 Zeilen – noch OK, aber bei Wachstum lohnt Split in `_lidl.py`, `_jsonld.py`, `_index.py`."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_lidl_kochen.py",
+    "/app/backend/tests/test_recipe_import.py"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "test_credentials": "admin@cookpilot.local / CookPilot!2026",
+  "seed_data_creation": "Tests importieren echte Rezepte per live HTTP-Call gegen rezepte.lidl.ch + lidl-kochen.de (kein Mocking) und bereinigen selbst (DELETE). external_recipes Collection enthält weiterhin ~36 Lidl-CH Index-Einträge aus voriger Iteration. Frontend-Testrecipe (Gebratener Reis, id=c8ed7f5b-…) wurde manuell nach dem UI-Import gelöscht.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Neue Testdatei: /app/backend/tests/test_lidl_kochen.py (13 Tests, Unit + Live-HTTP). Zwei alte Assertions in test_recipe_import.py wurden angepasst, weil example.com jetzt durch den generischen JSON-LD Fallback geht und eine andere Fehlermeldung ('kein schema.org/Recipe JSON-LD') statt 'nicht unterstützt' liefert. Kommando: `pytest /app/backend/tests/ -v` → 57/57. Relevante data-testids unverändert (external-card-<slug>, import-external-<slug>, import-url-btn/input/confirm). Live-Search Query-Param gegen Lidl-DE heißt serverseitig 's' – NICHT 'text' (siehe LIDL_KOCHEN_SEARCH_URL in recipe_import_service.py). Bei Rerun: Lidl-CH Bild-404 besteht weiterhin (kosmetisch, kein Blocker). Lidl-DE Bilder laden korrekt (direktes photo-Feld aus API).",
+  "rca of the issue": "Keine offenen Issues. Das in iteration_3 dokumentierte Lidl-CH Image-404 besteht weiter, ist aber kein Blocker für v0.4.0."
+}

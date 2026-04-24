@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from db import recipes, db
 from auth import get_current_user, require_admin
 from models import Recipe, RecipeCreate, RecipeUpdate
-from recipe_import_service import import_from_url, fetch_lidl_category_index, RecipeImportError
+from recipe_import_service import import_from_url, fetch_lidl_category_index, search_lidl_kochen, RecipeImportError
 
 router = APIRouter(prefix="/api/recipes", tags=["recipes"])
 
@@ -164,12 +164,39 @@ async def external_search(
     limit: int = 20,
     user: dict = Depends(get_current_user),
 ):
-    """Search our cached external recipe index (case-insensitive)."""
+    """Combined search: cached Lidl-CH Monsieur Cuisine + live Lidl-DE (lidl-kochen.de)."""
     mongo_query: dict = {"source_name": "lidl_monsieur_cuisine"}
     if q.strip():
         mongo_query["title"] = {"$regex": q.strip(), "$options": "i"}
-    docs = await external_recipes.find(mongo_query, {"_id": 0}).limit(limit).to_list(limit)
-    return {"count": len(docs), "results": docs}
+    cached = await external_recipes.find(mongo_query, {"_id": 0}).limit(limit).to_list(limit)
+    for c in cached:
+        c.setdefault("source_name", "lidl_monsieur_cuisine")
+
+    live: list = []
+    if q.strip():
+        try:
+            live = await search_lidl_kochen(q, per_page=limit)
+        except Exception:
+            live = []
+
+    combined = cached + live
+    return {"count": len(combined), "results": combined}
+
+
+@router.get("/external/live-search")
+async def external_live_search(
+    q: str = Query(..., min_length=1),
+    source: str = Query("lidl_kochen"),
+    limit: int = 20,
+    user: dict = Depends(get_current_user),
+):
+    if source != "lidl_kochen":
+        raise HTTPException(status_code=400, detail="Unbekannte Quelle")
+    try:
+        results = await search_lidl_kochen(q, per_page=limit)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Suche fehlgeschlagen: {exc}")
+    return {"count": len(results), "results": results}
 
 
 @router.post("/external/refresh")

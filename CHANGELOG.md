@@ -4,6 +4,17 @@ Alle wichtigen Änderungen an CookPilot werden in dieser Datei dokumentiert.
 
 Format: [Keep a Changelog](https://keepachangelog.com/de/1.1.0/) · SemVer.
 
+## [0.4.0] - 2026-04
+
+### Hinzugefügt
+- **lidl-kochen.de Integration**:
+  - URL-Import für `www.lidl-kochen.de/rezeptwelt/...` via JSON-LD (`schema.org/Recipe`).
+  - **Live-Suche** direkt in `/recipes`: Suchbegriff wird an die offizielle Lidl-DE Such-API (`/search_v2/api/search/recipes`) geschickt und liefert sofort aktuelle Treffer mit Bild, Kochzeit und Beliebtheits-Score. Kombinierte Suche mit dem bestehenden Lidl-CH-Cache.
+  - Pro Treffer „In Rezeptbuch"-Button → parst die Detailseite live und speichert komplette Anleitung mit Zutaten, Schritten und Bild.
+- **Generischer JSON-LD Importer** als Fallback in `import_from_url` - jede Rezept-Website, die `schema.org/Recipe` einbettet, funktioniert damit automatisch (Chefkoch, Fooby, Kitchen Stories, Lecker, etc.).
+- Neuer Endpoint `GET /api/recipes/external/live-search?q=...&source=lidl_kochen`.
+- Externer Rezept-Bereich zeigt Quellen-Chip (Lidl CH / Lidl DE) und Likes-Count.
+
 ## [0.3.0] - 2026-04
 
 ### Hinzugefügt

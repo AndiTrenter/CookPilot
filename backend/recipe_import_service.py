@@ -12,10 +12,13 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-USER_AGENT = "Mozilla/5.0 (compatible; CookPilot/0.2; +https://github.com/cookpilot)"
+USER_AGENT = "Mozilla/5.0 (compatible; CookPilot/0.3; +https://github.com/cookpilot)"
 
 LIDL_HOST = "rezepte.lidl.ch"
+LIDL_KOCHEN_HOST = "www.lidl-kochen.de"
 LIDL_DEFAULT_CATEGORY = "monsieur-cuisine-smart"
+
+LIDL_KOCHEN_SEARCH_URL = "https://www.lidl-kochen.de/search_v2/api/search/recipes"
 
 DIFFICULTY_MAP = {"1": "leicht", "2": "mittel", "3": "schwer"}
 
@@ -210,9 +213,260 @@ async def import_from_url(url: str) -> dict:
         raise RecipeImportError("Bitte eine gültige HTTPS-URL angeben.")
     if LIDL_HOST in url:
         return await import_from_lidl(url)
-    raise RecipeImportError(
-        "Diese Quelle wird noch nicht unterstützt. Aktuell: rezepte.lidl.ch."
-    )
+    if LIDL_KOCHEN_HOST in url:
+        return await import_from_jsonld(url, source_prefix="lidl_kochen")
+    # Generic JSON-LD fallback - works for many recipe sites (chefkoch, lecker, …)
+    try:
+        return await import_from_jsonld(url, source_prefix="url")
+    except RecipeImportError:
+        raise
+    except Exception:
+        raise RecipeImportError(
+            "Diese Quelle wird noch nicht unterstützt. Aktuell funktionieren rezepte.lidl.ch, "
+            "lidl-kochen.de und generische JSON-LD Rezepte (schema.org/Recipe)."
+        )
+
+
+# ---------------------------------------------------------------------------
+# Generic JSON-LD (schema.org/Recipe) importer
+# ---------------------------------------------------------------------------
+_JSONLD_PATTERN = re.compile(
+    r'<script[^>]*type="application/ld\+json"[^>]*>(.*?)</script>',
+    re.DOTALL | re.IGNORECASE,
+)
+_ISO_DURATION = re.compile(r"PT(?:(\d+)H)?(?:(\d+)M)?")
+# Splits "Langkornreis 300 g" or "200 g Mehl" into (amount, unit, name).
+_ING_RE = re.compile(
+    r"""^\s*
+        (?:(?P<amount1>[\d.,½¼¾⅓⅔]+)\s*(?P<unit1>[a-zA-Zäöü.]*)\s+(?P<name1>.+?)
+         |(?P<name2>.+?)\s+(?P<amount2>[\d.,½¼¾⅓⅔]+)\s*(?P<unit2>[a-zA-Zäöü.]*)
+         |(?P<name3>.+))
+        \s*$""",
+    re.VERBOSE,
+)
+_FRAC = {"½": 0.5, "¼": 0.25, "¾": 0.75, "⅓": 1 / 3, "⅔": 2 / 3}
+
+
+def _iso_to_min(val) -> Optional[int]:
+    if not val or not isinstance(val, str):
+        return None
+    m = _ISO_DURATION.match(val)
+    if not m:
+        return None
+    h = int(m.group(1) or 0)
+    mn = int(m.group(2) or 0)
+    total = h * 60 + mn
+    return total or None
+
+
+def _to_float(raw: str) -> float:
+    raw = raw.strip().replace(",", ".")
+    frac = sum(_FRAC.get(ch, 0) for ch in raw if ch in _FRAC)
+    digit = re.sub(r"[½¼¾⅓⅔]", "", raw).strip()
+    try:
+        return float(digit) + frac if digit else float(frac)
+    except ValueError:
+        return 0.0
+
+
+def _parse_ingredient(s: str) -> dict:
+    """Best-effort split of a free-form ingredient line."""
+    raw = (s or "").strip()
+    if not raw:
+        return {"name": "", "amount": 0, "unit": ""}
+    m = _ING_RE.match(raw)
+    if not m:
+        return {"name": raw, "amount": 0, "unit": ""}
+    if m.group("amount1") is not None:
+        return {
+            "name": m.group("name1").strip(" ,"),
+            "amount": _to_float(m.group("amount1")),
+            "unit": (m.group("unit1") or "").strip(),
+        }
+    if m.group("amount2") is not None:
+        return {
+            "name": m.group("name2").strip(" ,"),
+            "amount": _to_float(m.group("amount2")),
+            "unit": (m.group("unit2") or "").strip(),
+        }
+    return {"name": m.group("name3").strip(), "amount": 0, "unit": ""}
+
+
+def _find_jsonld_recipe(html: str) -> Optional[dict]:
+    for m in _JSONLD_PATTERN.finditer(html):
+        raw = m.group(1).strip()
+        if not raw:
+            continue
+        try:
+            data = json.loads(raw)
+        except Exception:
+            continue
+
+        candidates = data if isinstance(data, list) else [data]
+        # Handle @graph structure
+        extra = []
+        for c in candidates:
+            if isinstance(c, dict) and isinstance(c.get("@graph"), list):
+                extra.extend(c["@graph"])
+        candidates = candidates + extra
+
+        for c in candidates:
+            if not isinstance(c, dict):
+                continue
+            t = c.get("@type")
+            types = t if isinstance(t, list) else [t]
+            if "Recipe" in types:
+                return c
+    return None
+
+
+async def import_from_jsonld(url: str, source_prefix: str = "url") -> dict:
+    html = await _fetch(url)
+    recipe = _find_jsonld_recipe(html)
+    if not recipe:
+        raise RecipeImportError(
+            "Auf dieser Seite wurde kein strukturiertes Rezept gefunden (kein schema.org/Recipe JSON-LD)."
+        )
+
+    title = recipe.get("name") or ""
+    if isinstance(title, list):
+        title = title[0] if title else ""
+
+    # image can be string, list of strings, or list/dict with @type ImageObject
+    image_url = ""
+    image = recipe.get("image")
+    if isinstance(image, str):
+        image_url = image
+    elif isinstance(image, list) and image:
+        first = image[0]
+        image_url = first if isinstance(first, str) else (first.get("url") if isinstance(first, dict) else "")
+    elif isinstance(image, dict):
+        image_url = image.get("url") or ""
+
+    description = recipe.get("description") or ""
+    if isinstance(description, list):
+        description = " ".join(str(x) for x in description)
+
+    # servings
+    yield_raw = recipe.get("recipeYield")
+    servings = 4
+    if isinstance(yield_raw, (int, float)):
+        servings = int(yield_raw) or 4
+    elif isinstance(yield_raw, str):
+        m = re.search(r"\d+", yield_raw)
+        if m:
+            servings = int(m.group(0))
+    elif isinstance(yield_raw, list) and yield_raw:
+        m = re.search(r"\d+", str(yield_raw[0]))
+        if m:
+            servings = int(m.group(0))
+
+    prep = _iso_to_min(recipe.get("prepTime")) or 0
+    cook = _iso_to_min(recipe.get("cookTime")) or 0
+    total = _iso_to_min(recipe.get("totalTime")) or (prep + cook) or None
+
+    # ingredients
+    ingredients = [_parse_ingredient(x) for x in (recipe.get("recipeIngredient") or []) if x]
+
+    # instructions - may be list of HowToStep or HowToSection, or single string
+    def _flatten_steps(node) -> list[str]:
+        if node is None:
+            return []
+        if isinstance(node, str):
+            return [node.strip()] if node.strip() else []
+        if isinstance(node, dict):
+            t = node.get("@type")
+            if t == "HowToStep":
+                txt = (node.get("text") or node.get("name") or "").strip()
+                return [txt] if txt else []
+            if t == "HowToSection":
+                out = []
+                for item in node.get("itemListElement") or []:
+                    out.extend(_flatten_steps(item))
+                return out
+            txt = (node.get("text") or "").strip()
+            return [txt] if txt else []
+        if isinstance(node, list):
+            out = []
+            for item in node:
+                out.extend(_flatten_steps(item))
+            return out
+        return []
+
+    steps = _flatten_steps(recipe.get("recipeInstructions"))
+
+    # category / tags
+    category = ""
+    cat_raw = recipe.get("recipeCategory")
+    if isinstance(cat_raw, str):
+        category = cat_raw.split(",")[0].strip()
+    elif isinstance(cat_raw, list) and cat_raw:
+        category = str(cat_raw[0])
+
+    tags = []
+    keywords = recipe.get("keywords")
+    if isinstance(keywords, str):
+        tags = [k.strip() for k in keywords.split(",") if k.strip()]
+    elif isinstance(keywords, list):
+        tags = [str(k) for k in keywords]
+
+    # slug for source tag
+    slug = url.rstrip("/").rsplit("/", 1)[-1]
+
+    return {
+        "title": title or slug.replace("-", " ").title(),
+        "description": description.strip(),
+        "category": category,
+        "tags": tags[:15],
+        "servings": servings,
+        "cook_time_min": total,
+        "difficulty": None,
+        "ingredients": ingredients,
+        "steps": steps,
+        "image_url": image_url,
+        "source": f"{source_prefix}:{slug}",
+        "source_url": url,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Live-Suche Lidl-Kochen (lidl-kochen.de)
+# ---------------------------------------------------------------------------
+LIDL_KOCHEN_DIFFICULTY = {0: None, 1: "leicht", 2: "mittel", 3: "schwer"}
+
+
+async def search_lidl_kochen(text: str, per_page: int = 20) -> list[dict]:
+    """Query the live recipe search API and normalise results."""
+    if not text.strip():
+        return []
+    params = {
+        "perPage": max(1, min(per_page, 100)),
+        "sort": "-relevant",
+        "s": text.strip(),
+    }
+    async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
+        resp = await client.get(
+            LIDL_KOCHEN_SEARCH_URL,
+            params=params,
+            headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
+        )
+        resp.raise_for_status()
+        data = resp.json()
+    out: list[dict] = []
+    for r in data.get("list", []) or []:
+        if not isinstance(r, dict):
+            continue
+        out.append({
+            "slug": str(r.get("recipeId") or r.get("url", "").rsplit("/", 1)[-1]),
+            "title": r.get("name") or "",
+            "image_url": r.get("photo") or "",
+            "source_url": r.get("url") or "",
+            "cook_time_min": r.get("preparationTotalTime") or r.get("preparationTime") or None,
+            "difficulty": LIDL_KOCHEN_DIFFICULTY.get(r.get("difficulty") or 0),
+            "likes": r.get("likeCount") or 0,
+            "source_name": "lidl_kochen",
+        })
+    return out
 
 
 # ---------------------------------------------------------------------------
