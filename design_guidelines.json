@@ -1,0 +1,114 @@
+{
+  "app_name": "CookPilot",
+  "theme_mode": "light",
+  "design_archetype": "Archetype 1 (Organic & Earthy) - Modified for High Utility",
+  "core_principles": [
+    "High Utility & Glanceability: Information must be readable from 1-2 meters away (Wandtablet Mode).",
+    "Massive Touch Targets: Core actions require min 64px hit areas to accommodate dirty hands (kitchen) or quick tapping (supermarket).",
+    "Warm but Functional: Appetizing earthy accents without generic food-blog clutter (no cursive fonts, no messy layouts).",
+    "Bento Dashboard: Clear, structured, widget-based navigation for the central hub.",
+    "Responsive Contexts: Drastically different layouts for Desktop (Admin/Planning), Tablet (Kitchen/Cooking), and Mobile (Shopping)."
+  ],
+  "color_system": {
+    "background_app": "#FAF8F5",
+    "background_surface": "#FFFFFF",
+    "background_surface_secondary": "#F2EEE9",
+    "primary": "#C8553D",
+    "primary_hover": "#A64531",
+    "text_main": "#1C1C1C",
+    "text_muted": "#6B655C",
+    "success": "#2C5E43",
+    "warning": "#D97736",
+    "danger": "#BA2A2A",
+    "border": "#E5DFD3",
+    "rules": [
+      "No purple or teal. No generic tech-slop gradients.",
+      "Never use pure black or pure white. #FFFFFF is allowed for cards on the #FAF8F5 background to create soft contrast.",
+      "Primary color (Terracotta) is reserved for primary CTAs, active states, and critical highlights."
+    ]
+  },
+  "typography": {
+    "heading_font": "Cabinet Grotesk",
+    "body_font": "Manrope",
+    "hierarchy": {
+      "h1": "text-4xl sm:text-5xl lg:text-6xl tracking-tight font-bold",
+      "h2": "text-2xl sm:text-3xl lg:text-4xl tracking-tight font-bold",
+      "h3": "text-xl sm:text-2xl font-semibold",
+      "body": "text-base lg:text-lg text-[#1C1C1C] leading-relaxed",
+      "labels": "text-xs sm:text-sm font-bold tracking-[0.1em] uppercase text-[#6B655C]"
+    },
+    "rules": [
+      "Avoid Inter, Roboto, or Space Grotesk.",
+      "Use strong weight contrast (e.g., Bold headings vs Regular body).",
+      "Left-align content for readability, especially for ingredients and steps."
+    ]
+  },
+  "spacing_and_layout": {
+    "padding_scale": {
+      "card": "p-6 sm:p-8",
+      "widget": "p-4 sm:p-6",
+      "screen_edge": "px-4 sm:px-8 lg:px-12 py-6 sm:py-12"
+    },
+    "grid_strategy": {
+      "desktop_dashboard": "grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6",
+      "kitchen_tablet": "grid-cols-2 md:grid-cols-3 gap-8 with large widget spans (Bento layout)",
+      "supermarket_list": "flex flex-col space-y-4 (single column, full width)"
+    }
+  },
+  "component_rules": {
+    "buttons": {
+      "base": "inline-flex items-center justify-center font-bold tracking-wide transition-transform active:scale-95 rounded-2xl",
+      "sizes": {
+        "desktop": "h-12 px-6 text-base",
+        "tablet_mobile": "min-h-[64px] min-w-[64px] px-8 text-lg"
+      },
+      "variants": {
+        "primary": "bg-[#C8553D] text-white hover:bg-[#A64531]",
+        "secondary": "bg-[#F2EEE9] text-[#1C1C1C] hover:bg-[#E5DFD3]"
+      }
+    },
+    "cards_and_widgets": {
+      "style": "bg-white border border-[#E5DFD3] rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.04)]",
+      "kitchen_tile": "aspect-square or aspect-[4/3] flex flex-col justify-between hover:border-[#C8553D] transition-colors"
+    },
+    "checkboxes": {
+      "supermarket_mode": "h-12 w-12 sm:h-10 sm:w-10 rounded-xl border-2 border-[#E5DFD3] data-[state=checked]:bg-[#C8553D] data-[state=checked]:border-[#C8553D] transition-all",
+      "label": "text-xl sm:text-lg cursor-pointer select-none"
+    },
+    "surfaces": {
+      "glassmorphism": "Avoid glassmorphism. Use solid colors for maximum contrast and legibility.",
+      "navigation": "Sticky top or bottom bar (mobile) with solid background #FFFFFF and border-b/border-t #E5DFD3."
+    }
+  },
+  "motion_and_interaction": {
+    "hover_states": "Subtle -translate-y-1 on desktop cards. Background darkening on buttons.",
+    "active_states": "Distinct scale-95 down-press effect for physical feedback on touch devices.",
+    "transitions": "Fast and responsive (duration-200 ease-out). No slow, blocking animations."
+  },
+  "media_assets": {
+    "icons_library": "lucide-react (stroke-width: 2.5 for better visibility on tablets)",
+    "images": [
+      {
+        "category": "kitchen_placeholder",
+        "url": "https://images.unsplash.com/photo-1764080582659-652c0000ff1d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODF8MHwxfHNlYXJjaHwzfHxtaW5pbWFsaXN0JTIwa2l0Y2hlbiUyMGludGVyaW9yJTIwd2FybSUyMGxpZ2h0fGVufDB8fHx8MTc3NzAwMjYyN3ww&ixlib=rb-4.1.0&q=85",
+        "description": "Warm minimalist kitchen interior (use for empty states or hero headers)"
+      },
+      {
+        "category": "recipe_ingredients_placeholder",
+        "url": "https://images.pexels.com/photos/8366621/pexels-photo-8366621.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Fresh vegetables and herbs flatlay (use for missing recipe images or pantry headers)"
+      }
+    ]
+  },
+  "testing_rules": {
+    "data_testid": "ALL interactive elements (buttons, inputs, checkboxes, list items) MUST have a data-testid attribute in kebab-case (e.g., data-testid='shopping-list-checkbox-tomato')."
+  },
+  "instructions_for_main_agent": [
+    "Use German (Deutsch) as the primary language for all UI text, placeholders, and dummy data.",
+    "Implement distinct responsive views: A sidebar/complex layout for Desktop, but a large-tiled Bento layout for Tablet, and a highly simplified vertical list for Mobile.",
+    "When building the Shopping List (Supermarkt-Modus), ensure checkboxes are massive (min 48x48px, preferably larger) and text is large enough to read while moving.",
+    "When building the Kitchen Tablet Mode (Kochmodus), ensure recipe steps are displayed in large typography (text-2xl or 3xl) with massive 'Next Step' targets.",
+    "Use standard HTML divs and sections styled with Tailwind for the dashboard bento grid. Use shadcn/ui for complex interactive components (Select, Dialog) but override their padding and sizes to match the generous spacing system.",
+    "Do not use card components everywhere; allow some flat, cardless lists for density where needed (like the admin panel)."
+  ]
+}
