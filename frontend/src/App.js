@@ -17,6 +17,8 @@ import Pantry from "./pages/Pantry";
 import Chat from "./pages/Chat";
 import Tablet from "./pages/Tablet";
 import Admin from "./pages/Admin";
+import Scan from "./pages/Scan";
+import ReceiptScan from "./pages/ReceiptScan";
 
 function Shell({ children }) {
     return (
@@ -41,6 +43,8 @@ export default function App() {
                     <Route path="/recipes/:id/edit" element={<Shell><RecipeForm /></Shell>} />
                     <Route path="/recipes/:id/cook" element={<Shell><CookingMode /></Shell>} />
                     <Route path="/shopping" element={<Shell><Shopping /></Shell>} />
+                    <Route path="/scan" element={<Shell><Scan /></Shell>} />
+                    <Route path="/receipt-scan" element={<Shell><ReceiptScan /></Shell>} />
                     <Route path="/pantry" element={<Shell><Pantry /></Shell>} />
                     <Route path="/chat" element={<Shell><Chat /></Shell>} />
                     <Route path="/tablet" element={<Shell><Tablet /></Shell>} />

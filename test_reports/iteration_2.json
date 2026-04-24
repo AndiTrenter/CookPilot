@@ -1,0 +1,44 @@
+{
+  "summary": "Phase 3 Vision + Settings testing complete. 31/31 backend pytest tests pass (17 regression from iteration_1 + 14 new vision tests). Frontend smoke covered: login, dashboard quick-tiles (quick-scan / quick-receipt), /scan + /receipt-scan routes, Shopping links (shopping-scan-products-link / shopping-scan-receipt-link), Admin AI tab (chat + vision model inputs + persistence round-trip), Scan photo upload preview, 503 German toast when OpenAI key missing.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_vision.py",
+    "/app/backend/tests/test_cookpilot_api.py",
+    "/app/test_reports/pytest/pytest_results.xml",
+    "/app/test_reports/pytest/pytest_vision.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "vision_router.py is well-scoped (~210 LOC), uses UploadFile + Pydantic bodies correctly, saves files under /app/backend/uploads with UUID filenames and validates extension whitelist {jpg,jpeg,png,webp,heic}.",
+    "Vision flow degrades gracefully: VisionNotConfigured -> 503 with explicit German message; generic exceptions -> 502 (Vision-Fehler: ...).",
+    "Good: apply-scan and apply-receipt are independent of OpenAI - frontend can POST reviewed items directly, so mocking Vision is unnecessary for persistence paths.",
+    "Good: receipts collection records ocr_status transitions (pending -> disabled/failed/done) and apply-receipt stamps applied=true + applied_count.",
+    "Minor: scan-products accepts up to 6 files but sends ALL images in a single OpenAI request - for big images this could blow up token limits; consider batching or resizing server-side (PIL) before base64 encoding. Not a blocker for MVP.",
+    "Minor: _save_upload() reads file.file.read() synchronously inside an async endpoint - small files are fine, but for large images (>5MB) this blocks the event loop. Use `await file.read()` instead.",
+    "Minor: match_product_to_shopping fetches first 1000 open shopping items per scanned product (N+M loop is in-memory so OK, but if shopping list grows into thousands this should be indexed or cached).",
+    "Minor: apply-scan always inserts into pantry even if amount is None/0 - defaults to quantity=1 which is sensible, but there is no dedup check vs existing pantry entries with same name+mhd. Future enhancement: merge instead of duplicate.",
+    "Minor: Settings response always returns vision_model='gpt-4o' default when doc field missing - good fallback. SettingsPublic leaks no secrets.",
+    "Minor: Admin.jsx vision_model state defaults to 'gpt-4o' locally before fetch resolves - fine, no flicker observed."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_vision.py"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "test_credentials": "admin@cookpilot.local / CookPilot!2026",
+  "seed_data_creation": "Vision tests create TEST_scan_*, TEST_milch_*, TEST_butter_* shopping/pantry/purchases rows plus synthetic receipts rcpt_*. All data prefixed TEST_ for identification. No cleanup to avoid race conditions with concurrent tests; footprint is small.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run `pytest /app/backend/tests/ -v` for full regression (31 tests). Vision tests monkey-patch nothing: they exercise 503 path (OpenAI key empty by design) + apply-scan/apply-receipt which take reviewed items directly and do not call OpenAI. If later someone sets openai_api_key in settings, the 503 tests will fail - either clear the key first or switch those two tests to expect 200. data-testids on new pages: scan-add-photo-btn, scan-file-input, scan-upload-btn, scan-analyze-btn, scan-preview-{i}, scan-product-{i}, scan-reset-btn, scan-apply-btn; receipt-pick-btn, receipt-file-input, receipt-upload-btn, receipt-parse-btn, receipt-store-input, receipt-date-input, receipt-item-{i}, receipt-apply-btn; shopping-scan-products-link, shopping-scan-receipt-link, quick-scan, quick-receipt, admin-vision-model-input, admin-openai-model-input, admin-tab-ai.",
+  "rca of the issue": "No bugs found. One self-inflicted test assertion was wrong (filtered /api/purchases by truncated key) - fixed in the test to use exact product_key, which matches receipts_router's _normalise() behaviour."
+}

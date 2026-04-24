@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { toast } from "sonner";
-import { Plus, Trash2, ShoppingCart, CheckCheck, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, ShoppingCart, CheckCheck, AlertTriangle, Camera, Receipt } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export default function Shopping() {
     const [items, setItems] = useState([]);
@@ -67,6 +68,12 @@ export default function Shopping() {
                     <button type="button" onClick={addFromLowStock} className="cp-btn-secondary" data-testid="shopping-from-lowstock-btn">
                         <AlertTriangle className="h-4 w-4" /> Aus Vorrats-Mindestbestand
                     </button>
+                    <Link to="/scan" className="cp-btn-secondary" data-testid="shopping-scan-products-link">
+                        <Camera className="h-4 w-4" /> Einkauf einräumen
+                    </Link>
+                    <Link to="/receipt-scan" className="cp-btn-secondary" data-testid="shopping-scan-receipt-link">
+                        <Receipt className="h-4 w-4" /> Kassenzettel
+                    </Link>
                     <button type="button" onClick={clearChecked} className="cp-btn-ghost" data-testid="shopping-clear-checked-btn">
                         <CheckCheck className="h-4 w-4" /> Erledigte entfernen
                     </button>

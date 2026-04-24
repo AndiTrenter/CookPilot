@@ -39,6 +39,7 @@ async def get_settings() -> dict:
             "id": SETTINGS_ID,
             "openai_api_key": "",
             "openai_model": "gpt-5.2",
+            "vision_model": "gpt-4o",
             "smtp_host": "",
             "smtp_port": 587,
             "smtp_user": "",

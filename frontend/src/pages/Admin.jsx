@@ -165,20 +165,20 @@ function InvitesTab() {
 function AiTab() {
     const [s, setS] = useState(null);
     const [show, setShow] = useState(false);
-    const [form, setForm] = useState({ openai_api_key: "", openai_model: "gpt-5.2" });
+    const [form, setForm] = useState({ openai_api_key: "", openai_model: "gpt-5.2", vision_model: "gpt-4o" });
     useEffect(() => {
         api.get("/settings").then((r) => {
             setS(r.data);
-            setForm({ openai_api_key: "", openai_model: r.data.openai_model });
+            setForm({ openai_api_key: "", openai_model: r.data.openai_model, vision_model: r.data.vision_model || "gpt-4o" });
         });
     }, []);
     const save = async (e) => {
         e.preventDefault();
-        const patch = { openai_model: form.openai_model };
+        const patch = { openai_model: form.openai_model, vision_model: form.vision_model };
         if (form.openai_api_key) patch.openai_api_key = form.openai_api_key;
         const { data } = await api.put("/settings", patch);
         setS(data);
-        setForm({ openai_api_key: "", openai_model: data.openai_model });
+        setForm({ openai_api_key: "", openai_model: data.openai_model, vision_model: data.vision_model || "gpt-4o" });
         toast.success("Gespeichert");
     };
     if (!s) return null;
@@ -195,10 +195,17 @@ function AiTab() {
                     </button>
                 </div>
             </div>
-            <div>
-                <label className="cp-label">Modell</label>
-                <input className="cp-input" value={form.openai_model} onChange={(e) => setForm({ ...form, openai_model: e.target.value })} data-testid="admin-openai-model-input" />
-                <p className="text-xs text-[color:var(--muted)] mt-2">Standard: <code>gpt-5.2</code>. Auch <code>gpt-4o</code>, <code>gpt-4o-mini</code> etc. möglich.</p>
+            <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                    <label className="cp-label">Chat-Modell</label>
+                    <input className="cp-input" value={form.openai_model} onChange={(e) => setForm({ ...form, openai_model: e.target.value })} data-testid="admin-openai-model-input" />
+                    <p className="text-xs text-[color:var(--muted)] mt-2">Standard: <code>gpt-5.2</code>.</p>
+                </div>
+                <div>
+                    <label className="cp-label">Vision-Modell</label>
+                    <input className="cp-input" value={form.vision_model} onChange={(e) => setForm({ ...form, vision_model: e.target.value })} data-testid="admin-vision-model-input" />
+                    <p className="text-xs text-[color:var(--muted)] mt-2">Standard: <code>gpt-4o</code> (für Foto-Erkennung und Kassenzettel).</p>
+                </div>
             </div>
             <button className="cp-btn-primary" data-testid="admin-openai-save-btn">Speichern</button>
         </form>

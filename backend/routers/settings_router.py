@@ -11,6 +11,7 @@ def _to_public(doc: dict) -> SettingsPublic:
     return SettingsPublic(
         openai_api_key_set=bool(doc.get("openai_api_key")),
         openai_model=doc.get("openai_model") or "gpt-5.2",
+        vision_model=doc.get("vision_model") or "gpt-4o",
         smtp_host=doc.get("smtp_host") or "",
         smtp_port=int(doc.get("smtp_port") or 587),
         smtp_user=doc.get("smtp_user") or "",

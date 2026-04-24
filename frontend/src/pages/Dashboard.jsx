@@ -11,6 +11,8 @@ import {
     Heart,
     ChevronRight,
     Tablet,
+    Camera,
+    Receipt,
 } from "lucide-react";
 
 export default function Dashboard() {
@@ -137,6 +139,16 @@ export default function Dashboard() {
                             <Tablet className="h-6 w-6 text-[color:var(--primary)]" strokeWidth={2.5} />
                             <div className="font-semibold">Tablet-Modus</div>
                             <div className="text-xs text-[color:var(--muted)]">Wand-Ansicht</div>
+                        </Link>
+                        <Link to="/scan" className="cp-tile flex flex-col gap-2" data-testid="quick-scan">
+                            <Camera className="h-6 w-6 text-[color:var(--primary)]" strokeWidth={2.5} />
+                            <div className="font-semibold">Einkauf einräumen</div>
+                            <div className="text-xs text-[color:var(--muted)]">Fotos scannen</div>
+                        </Link>
+                        <Link to="/receipt-scan" className="cp-tile flex flex-col gap-2" data-testid="quick-receipt">
+                            <Receipt className="h-6 w-6 text-[color:var(--primary)]" strokeWidth={2.5} />
+                            <div className="font-semibold">Kassenzettel</div>
+                            <div className="text-xs text-[color:var(--muted)]">Auswerten</div>
                         </Link>
                         <Link to="/pantry" className="cp-tile flex flex-col gap-2" data-testid="quick-pantry">
                             <Archive className="h-6 w-6 text-[color:var(--primary)]" strokeWidth={2.5} />

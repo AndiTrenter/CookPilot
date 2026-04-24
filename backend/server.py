@@ -40,6 +40,7 @@ from routers.settings_router import router as settings_router  # noqa: E402
 from routers.widgets_router import router as widgets_router  # noqa: E402
 from routers.aria_router import router as aria_router  # noqa: E402
 from routers.receipts_router import router as receipts_router, purchase_router  # noqa: E402
+from routers.vision_router import router as vision_router  # noqa: E402
 
 APP_VERSION = os.environ.get("APP_VERSION", "0.1.0")
 
@@ -76,6 +77,7 @@ app.include_router(widgets_router)
 app.include_router(aria_router)
 app.include_router(receipts_router)
 app.include_router(purchase_router)
+app.include_router(vision_router)
 
 
 # Serve compiled frontend in production container.

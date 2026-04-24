@@ -229,6 +229,7 @@ class ChatSendRequest(BaseModel):
 class SettingsUpdate(BaseModel):
     openai_api_key: Optional[str] = None
     openai_model: Optional[str] = None
+    vision_model: Optional[str] = None
     smtp_host: Optional[str] = None
     smtp_port: Optional[int] = None
     smtp_user: Optional[str] = None
@@ -242,6 +243,7 @@ class SettingsUpdate(BaseModel):
 class SettingsPublic(BaseModel):
     openai_api_key_set: bool
     openai_model: str
+    vision_model: str
     smtp_host: str
     smtp_port: int
     smtp_user: str
