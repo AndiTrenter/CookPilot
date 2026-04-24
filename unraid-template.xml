@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>CookPilot</Name>
+  <Repository>ghcr.io/OWNER/cookpilot:latest</Repository>
+  <Registry>https://ghcr.io/</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/OWNER/cookpilot/issues</Support>
+  <Project>https://github.com/OWNER/cookpilot</Project>
+  <Overview>CookPilot - Dein intelligenter Küchen-Assistent. Rezepte, Einkaufsliste, Vorräte, KI-Kochhilfe. Vorbereitet für Kassenzettel-OCR und Integration in Aria.
+
+    **Voraussetzung:** Eine MongoDB 4.4 Instanz (z.B. der Unraid Community Applications "MongoDB" Container). Setze MONGO_URL entsprechend.
+  </Overview>
+  <Category>Productivity: HomeAutomation:</Category>
+  <WebUI>http://[IP]:[PORT:8001]/</WebUI>
+  <TemplateURL/>
+  <Icon>https://raw.githubusercontent.com/OWNER/cookpilot/main/frontend/public/logo192.png</Icon>
+  <ExtraParams/>
+  <PostArgs/>
+  <CPUset/>
+  <DateInstalled/>
+  <DonateText/>
+  <DonateLink/>
+  <Description>CookPilot - eigenständige Küchen-App für Unraid.</Description>
+
+  <Config Name="WebUI Port" Target="8001" Default="8001" Mode="tcp" Description="HTTP Port für CookPilot UI + API" Type="Port" Display="always" Required="true" Mask="false">8001</Config>
+  <Config Name="MongoDB URL" Target="MONGO_URL" Default="mongodb://192.168.1.10:27017" Mode="" Description="Verbindungs-URL zur MongoDB 4.4" Type="Variable" Display="always" Required="true" Mask="false">mongodb://192.168.1.10:27017</Config>
+  <Config Name="Datenbank-Name" Target="DB_NAME" Default="cookpilot" Mode="" Description="Datenbankname" Type="Variable" Display="always" Required="true" Mask="false">cookpilot</Config>
+  <Config Name="Admin E-Mail" Target="COOKPILOT_ADMIN_EMAIL" Default="admin@cookpilot.local" Mode="" Description="Initialer Admin-Account (nur beim ersten Start)" Type="Variable" Display="always" Required="true" Mask="false">admin@cookpilot.local</Config>
+  <Config Name="Admin Passwort" Target="COOKPILOT_ADMIN_PASSWORD" Default="CookPilot!2026" Mode="" Description="Passwort für den Admin-Account" Type="Variable" Display="always" Required="true" Mask="true">CookPilot!2026</Config>
+  <Config Name="JWT Secret" Target="JWT_SECRET" Default="" Mode="" Description="Zufälliger, langer String (min. 32 Zeichen)" Type="Variable" Display="always" Required="true" Mask="true"></Config>
+  <Config Name="Public URL" Target="COOKPILOT_PUBLIC_URL" Default="http://IP:8001" Mode="" Description="Öffentlich erreichbare URL (für E-Mail-Einladungen)" Type="Variable" Display="always" Required="true" Mask="false">http://IP:8001</Config>
+  <Config Name="Aria Shared Secret" Target="ARIA_SHARED_SECRET" Default="" Mode="" Description="Gemeinsames Geheimnis für Aria-Integration (leer lassen bis Aria eingebunden wird)" Type="Variable" Display="always" Required="false" Mask="true"></Config>
+  <Config Name="CORS Origins" Target="CORS_ORIGINS" Default="*" Mode="" Description="Komma-getrennte Liste erlaubter Origins" Type="Variable" Display="advanced" Required="false" Mask="false">*</Config>
+  <Config Name="Uploads Ordner" Target="/data/uploads" Default="/mnt/user/appdata/cookpilot/uploads" Mode="rw" Description="Persistenter Ordner für Kassenzettel- und Foto-Uploads" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/cookpilot/uploads</Config>
+</Container>

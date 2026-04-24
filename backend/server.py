@@ -1,89 +1,108 @@
-from fastapi import FastAPI, APIRouter
-from dotenv import load_dotenv
-from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
+"""CookPilot main FastAPI application.
+
+Fully independent of Emergent. Designed to run as a single Docker container
+on Unraid. The React frontend is compiled to static files during the Docker
+build and is served by this FastAPI app at '/'. The API lives under '/api'.
+
+During local Emergent development the React dev server runs separately on
+port 3000 and this app is reached via REACT_APP_BACKEND_URL.
+"""
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
-from typing import List
-import uuid
-from datetime import datetime, timezone
-
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from dotenv import load_dotenv
 
 ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
+load_dotenv(ROOT_DIR / ".env")
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s - %(message)s",
+)
+logger = logging.getLogger("cookpilot")
 
-# Create the main app without a prefix
-app = FastAPI()
+from db import client  # noqa: E402
+from seed import seed_admin  # noqa: E402
 
-# Create a router with the /api prefix
-api_router = APIRouter(prefix="/api")
+# Routers
+from routers.auth_router import router as auth_router  # noqa: E402
+from routers.users_router import router as users_router  # noqa: E402
+from routers.invites_router import router as invites_router  # noqa: E402
+from routers.recipes_router import router as recipes_router  # noqa: E402
+from routers.shopping_router import router as shopping_router  # noqa: E402
+from routers.pantry_router import router as pantry_router  # noqa: E402
+from routers.chat_router import router as chat_router  # noqa: E402
+from routers.settings_router import router as settings_router  # noqa: E402
+from routers.widgets_router import router as widgets_router  # noqa: E402
+from routers.aria_router import router as aria_router  # noqa: E402
+from routers.receipts_router import router as receipts_router, purchase_router  # noqa: E402
 
+APP_VERSION = os.environ.get("APP_VERSION", "0.1.0")
 
-# Define Models
-class StatusCheck(BaseModel):
-    model_config = ConfigDict(extra="ignore")  # Ignore MongoDB's _id field
-    
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
-class StatusCheckCreate(BaseModel):
-    client_name: str
-
-# Add your routes to the router instead of directly to app
-@api_router.get("/")
-async def root():
-    return {"message": "Hello World"}
-
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.model_dump()
-    status_obj = StatusCheck(**status_dict)
-    
-    # Convert to dict and serialize datetime to ISO string for MongoDB
-    doc = status_obj.model_dump()
-    doc['timestamp'] = doc['timestamp'].isoformat()
-    
-    _ = await db.status_checks.insert_one(doc)
-    return status_obj
-
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    # Exclude MongoDB's _id field from the query results
-    status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
-    
-    # Convert ISO string timestamps back to datetime objects
-    for check in status_checks:
-        if isinstance(check['timestamp'], str):
-            check['timestamp'] = datetime.fromisoformat(check['timestamp'])
-    
-    return status_checks
-
-# Include the router in the main app
-app.include_router(api_router)
+app = FastAPI(title="CookPilot", version=APP_VERSION)
 
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=os.environ.get("CORS_ORIGINS", "*").split(","),
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+
+@app.get("/api")
+async def api_root():
+    return {"service": "CookPilot", "version": APP_VERSION}
+
+
+@app.get("/api/health")
+async def api_health():
+    return {"ok": True, "version": APP_VERSION}
+
+
+app.include_router(auth_router)
+app.include_router(users_router)
+app.include_router(invites_router)
+app.include_router(recipes_router)
+app.include_router(shopping_router)
+app.include_router(pantry_router)
+app.include_router(chat_router)
+app.include_router(settings_router)
+app.include_router(widgets_router)
+app.include_router(aria_router)
+app.include_router(receipts_router)
+app.include_router(purchase_router)
+
+
+# Serve compiled frontend in production container.
+FRONTEND_DIR = Path(os.environ.get("COOKPILOT_FRONTEND_DIR", "/app/frontend_dist"))
+if FRONTEND_DIR.exists() and (FRONTEND_DIR / "index.html").exists():
+    app.mount(
+        "/static",
+        StaticFiles(directory=str(FRONTEND_DIR / "static")) if (FRONTEND_DIR / "static").exists() else StaticFiles(directory=str(FRONTEND_DIR)),
+        name="static",
+    )
+
+    @app.get("/{full_path:path}")
+    async def spa_catch_all(full_path: str):
+        if full_path.startswith("api/"):
+            return JSONResponse({"detail": "Not Found"}, status_code=404)
+        asset = FRONTEND_DIR / full_path
+        if full_path and asset.exists() and asset.is_file():
+            return FileResponse(str(asset))
+        return FileResponse(str(FRONTEND_DIR / "index.html"))
+
+
+@app.on_event("startup")
+async def on_startup():
+    logger.info("CookPilot startup - v%s", APP_VERSION)
+    await seed_admin()
+
 
 @app.on_event("shutdown")
-async def shutdown_db_client():
+async def on_shutdown():
     client.close()
