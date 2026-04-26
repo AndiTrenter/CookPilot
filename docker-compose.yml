@@ -24,11 +24,11 @@ services:
       JWT_EXPIRES_HOURS: "720"
       COOKPILOT_ADMIN_EMAIL: "${COOKPILOT_ADMIN_EMAIL:-admin@cookpilot.local}"
       COOKPILOT_ADMIN_PASSWORD: "${COOKPILOT_ADMIN_PASSWORD:-CookPilot!2026}"
-      COOKPILOT_PUBLIC_URL: "${COOKPILOT_PUBLIC_URL:-http://localhost:8001}"
+      COOKPILOT_PUBLIC_URL: "${COOKPILOT_PUBLIC_URL:-http://localhost:8010}"
       ARIA_SHARED_SECRET: "${ARIA_SHARED_SECRET:-}"
       APP_VERSION: "0.1.0"
     ports:
-      - "8001:8001"
+      - "${COOKPILOT_HOST_PORT:-8001}:8001"
     volumes:
       - cookpilot_uploads:/data/uploads
     networks:

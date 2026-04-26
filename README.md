@@ -23,6 +23,20 @@
 3. `MONGO_URL`, `JWT_SECRET`, `COOKPILOT_ADMIN_EMAIL`, `COOKPILOT_ADMIN_PASSWORD`, `COOKPILOT_PUBLIC_URL` setzen.
 4. Starten → `http://IP:8001` öffnen → mit Admin-Zugang anmelden.
 
+### Port anpassen (z.B. 8010 statt 8001)
+
+Wenn Port 8001 auf deinem Unraid bereits belegt ist (z.B. durch nginx-proxy-manager), kannst du den Host-Port frei wählen, **ohne** die `docker-compose.yml` zu editieren (sonst wird sie bei jedem Update überschrieben):
+
+1. Lege im Projekt-Ordner (neben der `docker-compose.yml`) eine Datei `.env` an - siehe [`.env.example`](./.env.example).
+2. Trage dort z.B. ein:
+   ```
+   COOKPILOT_HOST_PORT=8010
+   COOKPILOT_PUBLIC_URL=http://192.168.1.10:8010
+   ```
+3. `docker compose up -d --force-recreate` - der Container ist nun unter `:8010` erreichbar.
+
+`.env` wird von `git pull` **nicht** überschrieben, dein Update-Skript nimmt deinen Port also dauerhaft.
+
 Das Image wird automatisch als `ghcr.io/OWNER/cookpilot:latest` gebaut (siehe `.github/workflows/docker-build.yml`).
 
 ## Lokale Entwicklung (ohne Docker)

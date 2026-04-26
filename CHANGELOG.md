@@ -4,6 +4,12 @@ Alle wichtigen Änderungen an CookPilot werden in dieser Datei dokumentiert.
 
 Format: [Keep a Changelog](https://keepachangelog.com/de/1.1.0/) · SemVer.
 
+## [Unreleased]
+
+### Geändert
+- **docker-compose.yml**: Host-Port jetzt konfigurierbar via `COOKPILOT_HOST_PORT` (Default `8001`). So überleben individuelle Port-Mappings (z.B. `8010`) jeden `git pull`/Update-Lauf - einfach `.env` neben der `docker-compose.yml` anlegen (siehe `.env.example`).
+- `COOKPILOT_PUBLIC_URL` Default auf `http://localhost:8010` aktualisiert.
+
 ## [0.4.0] - 2026-04
 
 ### Hinzugefügt
