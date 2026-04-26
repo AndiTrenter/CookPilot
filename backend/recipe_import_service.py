@@ -138,7 +138,6 @@ async def import_from_lidl(url: str) -> dict:
     recipe = _resolve(raw, rows)
 
     slug = recipe.get("slug") or url.rstrip("/").rsplit("/", 1)[-1]
-    recipe_id = recipe.get("id")
 
     ingredients: list = []
     for grp in recipe.get("ingredientGroups") or []:

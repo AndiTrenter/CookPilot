@@ -10,12 +10,14 @@ import {
     LogOut,
     ChefHat,
     Tablet,
+    Calendar,
 } from "lucide-react";
 import { useAuth } from "../lib/auth";
 
 const nav = [
     { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
     { to: "/recipes", label: "Rezepte", icon: BookOpen },
+    { to: "/plan", label: "Wochenplan", icon: Calendar },
     { to: "/shopping", label: "Einkaufsliste", icon: ShoppingCart },
     { to: "/pantry", label: "Vorrat", icon: Archive },
     { to: "/chat", label: "Koch-Chat", icon: MessageSquare },

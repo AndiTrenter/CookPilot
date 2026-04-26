@@ -13,7 +13,9 @@ import {
     Tablet,
     Camera,
     Receipt,
+    Calendar,
 } from "lucide-react";
+import SuggestionWidget from "../components/SuggestionWidget";
 
 export default function Dashboard() {
     const { user } = useAuth();
@@ -58,6 +60,10 @@ export default function Dashboard() {
             </div>
 
             <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
+                <section className="md:col-span-2">
+                    <SuggestionWidget />
+                </section>
+
                 <section className="cp-card">
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="font-display text-2xl font-bold">Einkaufsliste</h2>
@@ -144,6 +150,11 @@ export default function Dashboard() {
                             <Camera className="h-6 w-6 text-[color:var(--primary)]" strokeWidth={2.5} />
                             <div className="font-semibold">Einkauf einräumen</div>
                             <div className="text-xs text-[color:var(--muted)]">Fotos scannen</div>
+                        </Link>
+                        <Link to="/plan" className="cp-tile flex flex-col gap-2" data-testid="quick-plan">
+                            <Calendar className="h-6 w-6 text-[color:var(--primary)]" strokeWidth={2.5} />
+                            <div className="font-semibold">Wochenplan</div>
+                            <div className="text-xs text-[color:var(--muted)]">Mahlzeiten planen</div>
                         </Link>
                         <Link to="/receipt-scan" className="cp-tile flex flex-col gap-2" data-testid="quick-receipt">
                             <Receipt className="h-6 w-6 text-[color:var(--primary)]" strokeWidth={2.5} />

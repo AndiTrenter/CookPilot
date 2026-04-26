@@ -19,6 +19,7 @@ import Tablet from "./pages/Tablet";
 import Admin from "./pages/Admin";
 import Scan from "./pages/Scan";
 import ReceiptScan from "./pages/ReceiptScan";
+import MealPlan from "./pages/MealPlan";
 
 function Shell({ children }) {
     return (
@@ -46,6 +47,7 @@ export default function App() {
                     <Route path="/scan" element={<Shell><Scan /></Shell>} />
                     <Route path="/receipt-scan" element={<Shell><ReceiptScan /></Shell>} />
                     <Route path="/pantry" element={<Shell><Pantry /></Shell>} />
+                    <Route path="/plan" element={<Shell><MealPlan /></Shell>} />
                     <Route path="/chat" element={<Shell><Chat /></Shell>} />
                     <Route path="/tablet" element={<Shell><Tablet /></Shell>} />
                     <Route path="/admin" element={

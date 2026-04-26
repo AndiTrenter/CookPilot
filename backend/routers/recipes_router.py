@@ -7,6 +7,7 @@ from db import recipes, db
 from auth import get_current_user, require_admin
 from models import Recipe, RecipeCreate, RecipeUpdate
 from recipe_import_service import import_from_url, fetch_lidl_category_index, search_lidl_kochen, RecipeImportError
+from suggestions_service import suggest_from_pantry, SuggestionsNotConfigured
 
 router = APIRouter(prefix="/api/recipes", tags=["recipes"])
 
@@ -15,6 +16,11 @@ external_recipes = db.external_recipes
 
 class ImportUrlRequest(BaseModel):
     url: str
+
+
+class SuggestionsRequest(BaseModel):
+    hint: Optional[str] = None
+    max_results: int = 3
 
 
 class ImportUrlPreview(BaseModel):
@@ -158,6 +164,16 @@ async def import_from_url_endpoint(body: ImportUrlRequest, user: dict = Depends(
 # ---------------------------------------------------------------------------
 # External catalog (rezepte.lidl.ch search)
 # ---------------------------------------------------------------------------
+@router.post("/suggestions")
+async def suggestions(body: SuggestionsRequest, user: dict = Depends(get_current_user)):
+    try:
+        return await suggest_from_pantry(user, max_results=max(1, min(body.max_results, 5)), hint=body.hint)
+    except SuggestionsNotConfigured as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Vorschläge fehlgeschlagen: {exc}")
+
+
 @router.get("/external/search")
 async def external_search(
     q: str = Query("", description="Suchbegriff"),
