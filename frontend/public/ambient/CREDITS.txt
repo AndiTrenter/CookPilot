@@ -1,8 +1,18 @@
-The 12 ambient kitchen/food photos in this folder were downloaded from
+The 18 ambient kitchen/food photos in this folder were downloaded from
 images.unsplash.com under the Unsplash License (https://unsplash.com/license).
 They are bundled with CookPilot to provide an atmospheric background that
 works offline / behind privacy blockers without depending on the Unsplash CDN
-at runtime.
+at runtime. The images are grouped by daypart in AmbientBackground.jsx:
+
+  Frühstück    (05-11):  07, 11, 12, 13, 18  (Brot, Avocado-Toast, Beeren,
+                                                Kaffee, Croissant)
+  Mittag       (11-14):  01, 04, 10, 08      (Bowl, Gemüse, Salat, Kräuter)
+  Nachmittag   (14-17):  02, 08, 15, 13      (Schneidebrett, Kräuter,
+                                                Kaffee+Kuchen, Kaffee)
+  Abend        (17-22):  03, 05, 06, 09, 14,
+                          16, 17              (Pasta, Pfanne, Tomate, Pizza,
+                                                Wein, Wein-Glas, Kerze)
+  Nacht        (22-05):  17, 14, 05          (Kerze, Wein, Pfanne)
 
 Original photo IDs:
   01 - photo-1546069901-ba9599a7e63c
@@ -17,3 +27,9 @@ Original photo IDs:
   10 - photo-1512621776951-a57141f2eefd
   11 - photo-1473093295043-cdd812d0e601
   12 - photo-1519996409144-56c88c9aa612
+  13 - photo-1495474472287-4d71bcdd2085
+  14 - photo-1510626176961-4b57d4fbad03
+  15 - photo-1486427944299-d1955d23e34d
+  16 - photo-1414235077428-338989a2e8c0
+  17 - photo-1559339352-11d035aa65de
+  18 - photo-1525351484163-7529414344d8

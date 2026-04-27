@@ -1,27 +1,49 @@
 import React, { useEffect, useState } from "react";
 
 /**
- * AmbientBackground - dezentes, stündlich wechselndes Rezept-/Küchen-Foto
- * im Hintergrund. Sitzt fixed hinter allen Inhalten, ~10% sichtbar.
+ * AmbientBackground - dezentes Hintergrundbild, passend zur Tageszeit.
  *
- * Die Bilder liegen lokal in /frontend/public/ambient/. So funktioniert der
- * Effekt offline, hinter Privacy-Blockern und ohne externe CDN-Abhängigkeit.
+ *   05:00 - 10:59  Frühstück  (Kaffee, Brot, Eier, Beeren)
+ *   11:00 - 13:59  Mittagessen (Bowl, Salat, Gemüse)
+ *   14:00 - 16:59  Nachmittag / Snack (Kaffee, Kuchen, Gewürze)
+ *   17:00 - 21:59  Abendessen (Pasta, Pizza, Wein, Kerzenlicht)
+ *   22:00 - 04:59  Nacht (warme, ruhige Küchenstimmung)
  *
- * Die Auswahl rotiert deterministisch pro Stunde, sodass innerhalb derselben
- * Stunde immer dasselbe Bild zu sehen ist und zur vollen Stunde der Wechsel
- * mit einer sanften Fade-Animation erfolgt.
+ * Innerhalb jeder Phase rotieren die Bilder stündlich, sodass der Hintergrund
+ * zur vollen Stunde sanft auf das nächste Motiv wechselt.
+ *
+ * Bilder liegen lokal unter /frontend/public/ambient/01.jpg ... 18.jpg.
  */
 
-const TOTAL_PHOTOS = 12;
+// Slot definition: { fromHour, toHour, indices } - toHour is exclusive on the
+// hour boundary; the night slot wraps around midnight.
+const SLOTS = [
+    { name: "fruehstueck", from: 5, to: 11, indices: [7, 11, 12, 13, 18] }, // Brot, Avo-Toast, Beeren, Kaffee, Croissant
+    { name: "mittag", from: 11, to: 14, indices: [1, 4, 10, 8] },            // Bowl, Gemüse, Salat, Kräuter
+    { name: "nachmittag", from: 14, to: 17, indices: [2, 8, 15, 13] },       // Schneidebrett, Kräuter, Kaffee+Kuchen, Kaffee
+    { name: "abend", from: 17, to: 22, indices: [3, 5, 6, 9, 14, 16, 17] },  // Pasta, Pfanne, Tomate, Pizza, Wein, Wein-Glas, Kerze
+    { name: "nacht", from: 22, to: 5, indices: [17, 14, 5] },                // Kerze, Wein, Pfanne (warm/ruhig)
+];
 
-function urlFor(idx) {
-    const n = String(idx + 1).padStart(2, "0");
-    return `${process.env.PUBLIC_URL || ""}/ambient/${n}.jpg`;
+function slotForHour(hour) {
+    return SLOTS.find((s) => {
+        if (s.from < s.to) return hour >= s.from && hour < s.to;
+        return hour >= s.from || hour < s.to; // wraps around midnight
+    });
 }
 
 function pickIndexForNow() {
-    const hour = Math.floor(Date.now() / (60 * 60 * 1000));
-    return hour % TOTAL_PHOTOS;
+    const now = new Date();
+    const slot = slotForHour(now.getHours());
+    if (!slot) return 1;
+    // Rotate stably within the slot per hour
+    const hourEpoch = Math.floor(now.getTime() / (60 * 60 * 1000));
+    return slot.indices[hourEpoch % slot.indices.length];
+}
+
+function urlFor(idx) {
+    const n = String(idx).padStart(2, "0");
+    return `${process.env.PUBLIC_URL || ""}/ambient/${n}.jpg`;
 }
 
 export default function AmbientBackground() {
