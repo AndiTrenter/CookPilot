@@ -32,7 +32,7 @@ export default function Layout({ children }) {
     if (loc.pathname.startsWith("/tablet")) return children;
 
     return (
-        <div className="min-h-screen flex flex-col md:flex-row bg-[color:var(--bg)]">
+        <div className="min-h-screen flex flex-col md:flex-row">
             {/* Desktop sidebar */}
             <aside className="hidden md:flex md:w-64 md:flex-col md:border-r md:border-[color:var(--border)] md:bg-white">
                 <div className="flex items-center gap-3 px-6 py-6">

@@ -3,7 +3,7 @@ import { api } from "../lib/api";
 import { toast } from "sonner";
 import { Plus, Trash2, Minus, AlertTriangle, Archive } from "lucide-react";
 
-const emptyItem = { name: "", amount: 0, unit: "", min_amount: 0, category: "", location: "", mhd: "" };
+const emptyItem = { name: "", amount: "", unit: "", min_amount: "", category: "", location: "", mhd: "" };
 
 export default function Pantry() {
     const [items, setItems] = useState([]);
@@ -16,7 +16,12 @@ export default function Pantry() {
         e.preventDefault();
         if (!form.name.trim()) return;
         try {
-            await api.post("/pantry", { ...form, amount: +form.amount, min_amount: +form.min_amount, mhd: form.mhd || null });
+            await api.post("/pantry", {
+                ...form,
+                amount: form.amount === "" ? 0 : +form.amount,
+                min_amount: form.min_amount === "" ? 0 : +form.min_amount,
+                mhd: form.mhd || null,
+            });
             setForm(emptyItem);
             load();
         } catch (err) {
@@ -41,19 +46,35 @@ export default function Pantry() {
                 <h1 className="font-display text-4xl sm:text-5xl font-bold">Vorrat</h1>
                 <p className="text-[color:var(--muted)] mt-2">Bestand, Mindestmengen, MHD.</p>
             </div>
-
             <form onSubmit={add} className="cp-card mb-6">
-                <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
-                    <input className="cp-input col-span-2 sm:col-span-2" placeholder="Artikel" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} data-testid="pantry-name-input" />
-                    <input className="cp-input" type="number" min={0} step="0.1" placeholder="Menge" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} data-testid="pantry-amount-input" />
-                    <input className="cp-input" placeholder="Einheit" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} data-testid="pantry-unit-input" />
-                    <input className="cp-input" type="number" min={0} step="0.1" placeholder="Min" value={form.min_amount} onChange={(e) => setForm({ ...form, min_amount: e.target.value })} data-testid="pantry-min-input" />
-                    <button className="cp-btn-primary" data-testid="pantry-add-btn"><Plus className="h-4 w-4" /></button>
+                <h2 className="font-display text-xl font-bold mb-4">Neuer Eintrag</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
+                    <Field label="Artikel" className="col-span-2 sm:col-span-2">
+                        <input className="cp-input" placeholder="z.B. Milch" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} data-testid="pantry-name-input" />
+                    </Field>
+                    <Field label="Bestand">
+                        <input className="cp-input" type="number" min={0} step="0.1" placeholder="Menge" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} data-testid="pantry-amount-input" />
+                    </Field>
+                    <Field label="Einheit">
+                        <input className="cp-input" placeholder="z.B. l, g, Stk" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} data-testid="pantry-unit-input" />
+                    </Field>
+                    <Field label="Mindestbestand">
+                        <input className="cp-input" type="number" min={0} step="0.1" placeholder="0" value={form.min_amount} onChange={(e) => setForm({ ...form, min_amount: e.target.value })} data-testid="pantry-min-input" />
+                    </Field>
+                    <div className="flex items-end">
+                        <button className="cp-btn-primary w-full h-[46px]" data-testid="pantry-add-btn"><Plus className="h-4 w-4" /></button>
+                    </div>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
-                    <input className="cp-input" placeholder="Kategorie" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} data-testid="pantry-category-input" />
-                    <input className="cp-input" placeholder="Lagerort" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} data-testid="pantry-location-input" />
-                    <input className="cp-input" type="date" value={form.mhd} onChange={(e) => setForm({ ...form, mhd: e.target.value })} data-testid="pantry-mhd-input" />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+                    <Field label="Kategorie (optional)">
+                        <input className="cp-input" placeholder="z.B. Milchprodukte" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} data-testid="pantry-category-input" />
+                    </Field>
+                    <Field label="Lagerort (optional)">
+                        <input className="cp-input" placeholder="z.B. Kühlschrank" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} data-testid="pantry-location-input" />
+                    </Field>
+                    <Field label="Mindesthaltbarkeit (optional)">
+                        <input className="cp-input" type="date" value={form.mhd} onChange={(e) => setForm({ ...form, mhd: e.target.value })} data-testid="pantry-mhd-input" />
+                    </Field>
                 </div>
             </form>
 
@@ -94,5 +115,14 @@ export default function Pantry() {
                 </div>
             )}
         </div>
+    );
+}
+
+function Field({ label, className = "", children }) {
+    return (
+        <label className={`flex flex-col gap-1 ${className}`}>
+            <span className="text-xs font-semibold uppercase tracking-wider text-[color:var(--muted)]">{label}</span>
+            {children}
+        </label>
     );
 }

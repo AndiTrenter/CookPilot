@@ -20,6 +20,7 @@ import Admin from "./pages/Admin";
 import Scan from "./pages/Scan";
 import ReceiptScan from "./pages/ReceiptScan";
 import MealPlan from "./pages/MealPlan";
+import AmbientBackground from "./components/AmbientBackground";
 
 function Shell({ children }) {
     return (
@@ -33,6 +34,7 @@ export default function App() {
     return (
         <AuthProvider>
             <BrowserRouter>
+                <AmbientBackground />
                 <Toaster position="top-right" richColors />
                 <Routes>
                     <Route path="/login" element={<Login />} />

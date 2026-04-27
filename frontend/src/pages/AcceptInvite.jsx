@@ -52,7 +52,7 @@ export default function AcceptInvite() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center px-4 bg-[color:var(--bg)]">
+        <div className="min-h-screen flex items-center justify-center px-4">
             <div className="w-full max-w-md">
                 <div className="flex items-center gap-3 mb-10">
                     <div className="h-12 w-12 rounded-2xl flex items-center justify-center bg-[color:var(--primary)] text-white">
