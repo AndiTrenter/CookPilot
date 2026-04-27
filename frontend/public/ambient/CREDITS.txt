@@ -1,0 +1,19 @@
+The 12 ambient kitchen/food photos in this folder were downloaded from
+images.unsplash.com under the Unsplash License (https://unsplash.com/license).
+They are bundled with CookPilot to provide an atmospheric background that
+works offline / behind privacy blockers without depending on the Unsplash CDN
+at runtime.
+
+Original photo IDs:
+  01 - photo-1546069901-ba9599a7e63c
+  02 - photo-1504674900247-0877df9cc836
+  03 - photo-1495521821757-a1efb6729352
+  04 - photo-1490645935967-10de6ba17061
+  05 - photo-1556909114-f6e7ad7d3136
+  06 - photo-1490818387583-1baba5e638af
+  07 - photo-1542010589005-d1eacc3918f2
+  08 - photo-1466637574441-749b8f19452f
+  09 - photo-1565299624946-b28f40a0ae38
+  10 - photo-1512621776951-a57141f2eefd
+  11 - photo-1473093295043-cdd812d0e601
+  12 - photo-1519996409144-56c88c9aa612

@@ -2,63 +2,50 @@ import React, { useEffect, useState } from "react";
 
 /**
  * AmbientBackground - dezentes, stündlich wechselndes Rezept-/Küchen-Foto
- * als Hintergrund. Sitzt fixed hinter allen Inhalten, ~10% sichtbar.
+ * im Hintergrund. Sitzt fixed hinter allen Inhalten, ~10% sichtbar.
  *
- * Bilder werden direkt von images.unsplash.com geladen (CDN, frei nutzbar
- * gemäß Unsplash-Lizenz). Die Auswahl rotiert deterministisch pro Stunde,
- * sodass innerhalb derselben Stunde immer dasselbe Bild zu sehen ist und
- * zur vollen Stunde der nächste Schritt erfolgt.
+ * Die Bilder liegen lokal in /frontend/public/ambient/. So funktioniert der
+ * Effekt offline, hinter Privacy-Blockern und ohne externe CDN-Abhängigkeit.
+ *
+ * Die Auswahl rotiert deterministisch pro Stunde, sodass innerhalb derselben
+ * Stunde immer dasselbe Bild zu sehen ist und zur vollen Stunde der Wechsel
+ * mit einer sanften Fade-Animation erfolgt.
  */
 
-// Kuratierte Auswahl food/kitchen aus Unsplash. Jeder Eintrag ist eine
-// stabile Photo-ID; die Datei wird über images.unsplash.com optimiert.
-const PHOTO_IDS = [
-    "1546069901-ba9599a7e63c", // bunte Bowl
-    "1504674900247-0877df9cc836", // Holzbrett & Gewürze
-    "1495521821757-a1efb6729352", // Pasta
-    "1490645935967-10de6ba17061", // Gemüseauslage
-    "1556909114-f6e7ad7d3136", // Pfanne / kochen
-    "1490818387583-1baba5e638af", // Tomate / Olivenöl
-    "1542010589005-d1eacc3918f2", // Brot, Mehl
-    "1466637574441-749b8f19452f", // Kräuter
-    "1565299624946-b28f40a0ae38", // Pizza rustic
-    "1512621776951-a57141f2eefd", // Salat
-    "1473093295043-cdd812d0e601", // Avocado-Toast
-    "1519996409144-56c88c9aa612", // Beeren
-];
+const TOTAL_PHOTOS = 12;
 
-function urlFor(id) {
-    return `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=1920&q=70`;
+function urlFor(idx) {
+    const n = String(idx + 1).padStart(2, "0");
+    return `${process.env.PUBLIC_URL || ""}/ambient/${n}.jpg`;
 }
 
 function pickIndexForNow() {
-    // Stunden seit Unix-Epoch → mod Anzahl Bilder
     const hour = Math.floor(Date.now() / (60 * 60 * 1000));
-    return hour % PHOTO_IDS.length;
+    return hour % TOTAL_PHOTOS;
 }
 
 export default function AmbientBackground() {
     const [idx, setIdx] = useState(pickIndexForNow);
 
     useEffect(() => {
-        // Berechne Millisekunden bis zur nächsten vollen Stunde
         const now = new Date();
         const nextHour = new Date(now);
         nextHour.setHours(now.getHours() + 1, 0, 5, 0); // +5s Puffer
         const msToNext = nextHour.getTime() - now.getTime();
 
+        let interval;
         const initial = setTimeout(() => {
             setIdx(pickIndexForNow());
-            // Danach jede Stunde
-            const interval = setInterval(() => setIdx(pickIndexForNow()), 60 * 60 * 1000);
-            // Cleanup für interval per Closure
-            return () => clearInterval(interval);
+            interval = setInterval(() => setIdx(pickIndexForNow()), 60 * 60 * 1000);
         }, msToNext);
 
-        return () => clearTimeout(initial);
+        return () => {
+            clearTimeout(initial);
+            if (interval) clearInterval(interval);
+        };
     }, []);
 
-    const photoUrl = urlFor(PHOTO_IDS[idx]);
+    const photoUrl = urlFor(idx);
 
     return (
         <div
