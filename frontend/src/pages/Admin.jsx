@@ -99,13 +99,15 @@ function InvitesTab() {
     const [list, setList] = useState([]);
     const [email, setEmail] = useState("");
     const [role, setRole] = useState("user");
+    const [lastInvite, setLastInvite] = useState(null);
     const load = () => api.get("/invites").then((r) => setList(r.data));
     useEffect(() => { load(); }, []);
     const create = async (e) => {
         e.preventDefault();
         try {
             const { data } = await api.post("/invites", { email, role });
-            toast.success(data.email_sent ? "Einladung per E-Mail verschickt" : "Einladung erstellt (kein SMTP - Link manuell teilen)");
+            setLastInvite({ email, url: data.invite_url, mailed: data.email_sent });
+            toast.success(data.email_sent ? "Einladung per E-Mail verschickt" : "Einladung erstellt - Link manuell teilen");
             setEmail("");
             load();
         } catch (err) {
@@ -114,6 +116,10 @@ function InvitesTab() {
     };
     const copyLink = async (token) => {
         const url = `${window.location.origin}/invite/${token}`;
+        await navigator.clipboard.writeText(url);
+        toast.success("Link kopiert");
+    };
+    const copyShown = async (url) => {
         await navigator.clipboard.writeText(url);
         toast.success("Link kopiert");
     };
@@ -131,6 +137,22 @@ function InvitesTab() {
                     </select>
                     <button className="cp-btn-primary col-span-2" data-testid="invite-create-btn">Einladen</button>
                 </div>
+                {lastInvite && (
+                    <div className="mt-5 rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-2)] p-4" data-testid="invite-last-link-box">
+                        <div className="cp-kicker mb-2">
+                            Einladung für {lastInvite.email} {lastInvite.mailed ? "(per E-Mail verschickt)" : "(SMTP nicht aktiv - Link manuell weitergeben)"}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <code className="flex-1 text-xs sm:text-sm break-all bg-white border border-[color:var(--border)] rounded-xl px-3 py-2" data-testid="invite-last-link-url">{lastInvite.url}</code>
+                            <button type="button" onClick={() => copyShown(lastInvite.url)} className="cp-btn-secondary" data-testid="invite-last-link-copy">
+                                <Copy className="h-4 w-4" /> Kopieren
+                            </button>
+                        </div>
+                        <p className="text-xs text-[color:var(--muted)] mt-2">
+                            Tipp: Falls dieser Link nach <code>localhost</code> oder <code>IP</code> aussieht, setze die Umgebungsvariable <code>COOKPILOT_PUBLIC_URL</code> in deiner <code>.env</code> auf die echte Adresse (z.B. <code>http://192.168.1.10:8010</code>) und starte den Container neu.
+                        </p>
+                    </div>
+                )}
             </form>
             <div className="cp-card">
                 <h2 className="font-display text-2xl font-bold mb-4">Offene Einladungen</h2>
