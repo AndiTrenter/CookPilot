@@ -55,7 +55,7 @@ export default function Tablet() {
     const todayPick = recipes[Math.floor(Math.random() * Math.max(1, recipes.length))];
 
     return (
-        <div className="min-h-screen bg-[color:var(--bg)] p-6 md:p-10">
+        <div className="min-h-screen p-6 md:p-10">
             <header className="flex items-start justify-between mb-8">
                 <div>
                     <div className="cp-kicker mb-1">Küchen-Tablet</div>
