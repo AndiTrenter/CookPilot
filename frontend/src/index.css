@@ -97,12 +97,18 @@
 
 @layer components {
     .cp-card {
-        @apply rounded-3xl border bg-white p-6 sm:p-8 transition-colors;
+        @apply rounded-3xl border p-6 sm:p-8 transition-colors;
+        background: rgba(255, 255, 255, 0.82);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
         border-color: var(--border);
         box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
     }
     .cp-tile {
-        @apply rounded-3xl border bg-white p-6 transition-all duration-200;
+        @apply rounded-3xl border p-6 transition-all duration-200;
+        background: rgba(255, 255, 255, 0.82);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
         border-color: var(--border);
     }
     .cp-tile:hover {
@@ -125,10 +131,12 @@
         @apply inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2 font-semibold text-[color:var(--muted)] transition-colors hover:bg-[color:var(--surface-2)];
     }
     .cp-input {
-        @apply w-full rounded-2xl border bg-white px-4 py-3 text-base text-[color:var(--text)] outline-none transition-colors;
+        @apply w-full rounded-2xl border px-4 py-3 text-base text-[color:var(--text)] outline-none transition-colors;
+        background: rgba(255, 255, 255, 0.92);
         border-color: var(--border);
     }
     .cp-input:focus {
+        background: #ffffff;
         border-color: var(--primary);
         box-shadow: 0 0 0 4px rgba(200, 85, 61, 0.12);
     }
@@ -162,12 +170,15 @@
 
     /* Supermarket mode: huge touch checkboxes */
     .cp-shop-row {
-        @apply flex items-center gap-5 rounded-2xl border bg-white p-5 transition-colors;
+        @apply flex items-center gap-5 rounded-2xl border p-5 transition-colors;
+        background: rgba(255, 255, 255, 0.82);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
         border-color: var(--border);
         min-height: 80px;
     }
     .cp-shop-row[data-checked="true"] {
-        background: var(--surface-2);
+        background: rgba(242, 238, 233, 0.85);
     }
     .cp-shop-row[data-checked="true"] .cp-shop-name {
         text-decoration: line-through;
@@ -175,7 +186,10 @@
     }
 
     .cp-tablet-tile {
-        @apply rounded-3xl border bg-white p-8 transition-all;
+        @apply rounded-3xl border p-8 transition-all;
+        background: rgba(255, 255, 255, 0.82);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
         border-color: var(--border);
         min-height: 180px;
     }

@@ -56,7 +56,7 @@ export default function AmbientBackground() {
                 backgroundImage: `url("${photoUrl}")`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
-                opacity: 0.1,
+                opacity: 0.15,
             }}
         />
     );
