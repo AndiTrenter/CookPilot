@@ -9,6 +9,11 @@ from models import ShoppingItem, ShoppingItemCreate, ShoppingItemUpdate, AddReci
 router = APIRouter(prefix="/api/shopping", tags=["shopping"])
 
 
+def _norm(s: str) -> str:
+    """Normalize a string for case-/whitespace-insensitive comparison."""
+    return (s or "").strip().lower()
+
+
 @router.get("", response_model=List[ShoppingItem])
 async def list_items(user: dict = Depends(get_current_user)):
     docs = await shopping_items.find({}, {"_id": 0}).sort("created_at", 1).to_list(2000)
@@ -71,18 +76,40 @@ async def add_from_recipe(body: AddRecipeIngredientsRequest, user: dict = Depend
     base_servings = max(1, recipe.get("servings", 1) or 1)
     factor = (body.servings / base_servings) if body.servings else 1
 
-    added = []
-    for ing in recipe.get("ingredients", []):
-        item = ShoppingItem(
-            name=ing["name"],
-            amount=round((ing.get("amount", 0) or 0) * factor, 2),
-            unit=ing.get("unit", ""),
-            source=f"rezept:{recipe['id']}",
-        )
-        doc = item.model_dump()
-        await shopping_items.insert_one(doc.copy())
-        added.append(item)
-    return {"added": len(added)}
+    # Load existing unchecked items once and build a lookup by (name, unit)
+    existing_docs = await shopping_items.find({"checked": False}, {"_id": 0}).to_list(2000)
+    existing_idx = {f"{_norm(e.get('name',''))}|{_norm(e.get('unit',''))}": e for e in existing_docs}
+
+    added, merged = 0, 0
+    for ing in recipe.get("ingredients", []) or []:
+        name = (ing.get("name") or "").strip()
+        if not name:
+            continue
+        unit = (ing.get("unit") or "").strip()
+        amount = round((ing.get("amount", 0) or 0) * factor, 2)
+        key = f"{_norm(name)}|{_norm(unit)}"
+
+        if key in existing_idx:
+            ex = existing_idx[key]
+            new_amount = round((ex.get("amount") or 0) + amount, 2)
+            await shopping_items.update_one(
+                {"id": ex["id"]},
+                {"$set": {"amount": new_amount, "source": f"rezept:{recipe['id']}"}},
+            )
+            ex["amount"] = new_amount  # keep index in sync for repeated ingredients
+            merged += 1
+        else:
+            item = ShoppingItem(
+                name=name,
+                amount=amount,
+                unit=unit,
+                source=f"rezept:{recipe['id']}",
+            )
+            doc = item.model_dump()
+            await shopping_items.insert_one(doc.copy())
+            existing_idx[key] = doc
+            added += 1
+    return {"added": added, "merged": merged}
 
 
 @router.post("/from-low-stock")
@@ -91,18 +118,38 @@ async def add_from_low_stock(user: dict = Depends(get_current_user)):
         {"$expr": {"$lt": ["$amount", "$min_amount"]}},
         {"_id": 0},
     ).to_list(1000)
-    count = 0
+
+    existing_docs = await shopping_items.find({"checked": False}, {"_id": 0}).to_list(2000)
+    existing_idx = {f"{_norm(e.get('name',''))}|{_norm(e.get('unit',''))}": e for e in existing_docs}
+
+    added, merged = 0, 0
     for p in low:
         diff = max(0, (p.get("min_amount", 0) or 0) - (p.get("amount", 0) or 0))
         if diff <= 0:
             continue
-        item = ShoppingItem(
-            name=p["name"],
-            amount=diff,
-            unit=p.get("unit", ""),
-            category=p.get("category", ""),
-            source=f"vorrat:{p['id']}",
-        )
-        await shopping_items.insert_one(item.model_dump())
-        count += 1
-    return {"added": count}
+        name = (p.get("name") or "").strip()
+        unit = (p.get("unit") or "").strip()
+        key = f"{_norm(name)}|{_norm(unit)}"
+
+        if key in existing_idx:
+            ex = existing_idx[key]
+            new_amount = round((ex.get("amount") or 0) + diff, 2)
+            await shopping_items.update_one(
+                {"id": ex["id"]},
+                {"$set": {"amount": new_amount, "source": f"vorrat:{p['id']}"}},
+            )
+            ex["amount"] = new_amount
+            merged += 1
+        else:
+            item = ShoppingItem(
+                name=name,
+                amount=round(diff, 2),
+                unit=unit,
+                category=p.get("category", ""),
+                source=f"vorrat:{p['id']}",
+            )
+            doc = item.model_dump()
+            await shopping_items.insert_one(doc.copy())
+            existing_idx[key] = doc
+            added += 1
+    return {"added": added, "merged": merged}

@@ -40,7 +40,10 @@ export default function Shopping() {
 
     const addFromLowStock = async () => {
         const { data } = await api.post("/shopping/from-low-stock");
-        toast.success(`${data.added} Artikel ergänzt`);
+        const parts = [];
+        if (data.added) parts.push(`${data.added} neu`);
+        if (data.merged) parts.push(`${data.merged} zusammengeführt`);
+        toast.success(parts.length ? `Einkaufsliste: ${parts.join(" · ")}` : "Nichts ergänzt");
         load();
     };
 

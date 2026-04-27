@@ -15,7 +15,10 @@ export default function RecipeDetail() {
     const addToShopping = async () => {
         try {
             const { data } = await api.post("/shopping/from-recipe", { recipe_id: id });
-            toast.success(`${data.added} Zutaten zur Einkaufsliste`);
+            const parts = [];
+            if (data.added) parts.push(`${data.added} neu`);
+            if (data.merged) parts.push(`${data.merged} zusammengeführt`);
+            toast.success(parts.length ? `Einkaufsliste: ${parts.join(" · ")}` : "Nichts ergänzt");
         } catch (err) {
             toast.error(err?.response?.data?.detail || "Fehler");
         }
