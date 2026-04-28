@@ -3,6 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../lib/api";
 import { toast } from "sonner";
 import { Plus, Trash2, Save } from "lucide-react";
+import ProductInput from "../components/ProductInput";
+import UnitSelect from "../components/UnitSelect";
 
 const emptyRecipe = {
     title: "",
@@ -125,8 +127,22 @@ export default function RecipeForm() {
                         {r.ingredients.map((ing, i) => (
                             <div key={i} className="grid grid-cols-12 gap-2">
                                 <input className="cp-input col-span-2" type="number" min={0} step="0.1" value={ing.amount} onChange={(e) => updateIng(i, "amount", +e.target.value)} data-testid={`ing-amount-${i}`} />
-                                <input className="cp-input col-span-2" placeholder="g / ml / Stk" value={ing.unit} onChange={(e) => updateIng(i, "unit", e.target.value)} data-testid={`ing-unit-${i}`} />
-                                <input className="cp-input col-span-7" placeholder="Zutat" value={ing.name} onChange={(e) => updateIng(i, "name", e.target.value)} data-testid={`ing-name-${i}`} />
+                                <div className="col-span-2">
+                                    <UnitSelect
+                                        value={ing.unit}
+                                        onChange={(v) => updateIng(i, "unit", v)}
+                                        testId={`ing-unit-${i}`}
+                                    />
+                                </div>
+                                <div className="col-span-7">
+                                    <ProductInput
+                                        value={ing.name}
+                                        onChange={(v) => updateIng(i, "name", v)}
+                                        onUnitSelect={(u) => updateIng(i, "unit", u)}
+                                        placeholder="Zutat"
+                                        testId={`ing-name-${i}`}
+                                    />
+                                </div>
                                 <button onClick={() => setR({ ...r, ingredients: r.ingredients.filter((_, idx) => idx !== i) })} className="cp-btn-ghost text-[color:var(--danger)] col-span-1" data-testid={`ing-del-${i}`}>
                                     <Trash2 className="h-4 w-4" />
                                 </button>

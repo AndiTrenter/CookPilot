@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { toast } from "sonner";
 import { Plus, Trash2, Minus, AlertTriangle, Archive } from "lucide-react";
+import ProductInput from "../components/ProductInput";
+import UnitSelect from "../components/UnitSelect";
 
 const emptyItem = { name: "", amount: "", unit: "", min_amount: "", category: "", location: "", mhd: "" };
 
@@ -50,13 +52,23 @@ export default function Pantry() {
                 <h2 className="font-display text-xl font-bold mb-4">Neuer Eintrag</h2>
                 <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
                     <Field label="Artikel" className="col-span-2 sm:col-span-2">
-                        <input className="cp-input" placeholder="z.B. Milch" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} data-testid="pantry-name-input" />
+                        <ProductInput
+                            value={form.name}
+                            onChange={(v) => setForm({ ...form, name: v })}
+                            onUnitSelect={(u) => setForm((f) => ({ ...f, unit: u }))}
+                            placeholder="z.B. Milch"
+                            testId="pantry-name-input"
+                        />
                     </Field>
                     <Field label="Bestand">
                         <input className="cp-input" type="number" min={0} step="0.1" placeholder="Menge" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} data-testid="pantry-amount-input" />
                     </Field>
                     <Field label="Einheit">
-                        <input className="cp-input" placeholder="z.B. l, g, Stk" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} data-testid="pantry-unit-input" />
+                        <UnitSelect
+                            value={form.unit}
+                            onChange={(v) => setForm({ ...form, unit: v })}
+                            testId="pantry-unit-input"
+                        />
                     </Field>
                     <Field label="Mindestbestand">
                         <input className="cp-input" type="number" min={0} step="0.1" placeholder="0" value={form.min_amount} onChange={(e) => setForm({ ...form, min_amount: e.target.value })} data-testid="pantry-min-input" />

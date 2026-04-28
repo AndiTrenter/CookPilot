@@ -26,6 +26,7 @@ app_settings = db.app_settings
 receipts = db.receipts
 purchases = db.purchases
 widget_configs = db.widget_configs
+products = db.products
 
 
 SETTINGS_ID = "global"

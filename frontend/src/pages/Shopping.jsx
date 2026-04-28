@@ -3,6 +3,8 @@ import { api } from "../lib/api";
 import { toast } from "sonner";
 import { Plus, Trash2, ShoppingCart, CheckCheck, AlertTriangle, Camera, Receipt } from "lucide-react";
 import { Link } from "react-router-dom";
+import ProductInput from "../components/ProductInput";
+import UnitSelect from "../components/UnitSelect";
 
 export default function Shopping() {
     const [items, setItems] = useState([]);
@@ -60,9 +62,18 @@ export default function Shopping() {
 
             <form onSubmit={add} className="cp-card mb-6">
                 <div className="grid grid-cols-12 gap-2">
-                    <input className="cp-input col-span-6 sm:col-span-7" placeholder="Artikel" value={name} onChange={(e) => setName(e.target.value)} data-testid="shopping-name-input" />
+                    <ProductInput
+                        value={name}
+                        onChange={setName}
+                        onUnitSelect={setUnit}
+                        placeholder="Artikel"
+                        className="col-span-6 sm:col-span-7"
+                        testId="shopping-name-input"
+                    />
                     <input className="cp-input col-span-2" type="number" min={0} step="0.1" value={amount} onChange={(e) => setAmount(e.target.value)} data-testid="shopping-amount-input" />
-                    <input className="cp-input col-span-2" placeholder="Einheit" value={unit} onChange={(e) => setUnit(e.target.value)} data-testid="shopping-unit-input" />
+                    <div className="col-span-2">
+                        <UnitSelect value={unit} onChange={setUnit} testId="shopping-unit-input" />
+                    </div>
                     <button className="cp-btn-primary col-span-2" data-testid="shopping-add-btn">
                         <Plus className="h-4 w-4" />
                     </button>

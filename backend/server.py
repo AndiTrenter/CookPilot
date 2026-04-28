@@ -42,6 +42,7 @@ from routers.aria_router import router as aria_router  # noqa: E402
 from routers.receipts_router import router as receipts_router, purchase_router  # noqa: E402
 from routers.vision_router import router as vision_router  # noqa: E402
 from routers.meal_plan_router import router as meal_plan_router  # noqa: E402
+from routers.products_router import router as products_router, seed_products  # noqa: E402
 
 APP_VERSION = os.environ.get("APP_VERSION", "0.1.0")
 
@@ -80,6 +81,7 @@ app.include_router(receipts_router)
 app.include_router(purchase_router)
 app.include_router(vision_router)
 app.include_router(meal_plan_router)
+app.include_router(products_router)
 
 
 # Serve compiled frontend in production container.
@@ -105,6 +107,9 @@ if FRONTEND_DIR.exists() and (FRONTEND_DIR / "index.html").exists():
 async def on_startup():
     logger.info("CookPilot startup - v%s", APP_VERSION)
     await seed_admin()
+    inserted = await seed_products()
+    if inserted:
+        logger.info("Produkt-Katalog: %d neue Einträge angelegt", inserted)
 
 
 @app.on_event("shutdown")

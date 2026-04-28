@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from db import recipes, db
 from auth import get_current_user, require_admin
 from models import Recipe, RecipeCreate, RecipeUpdate
-from recipe_import_service import import_from_url, fetch_lidl_category_index, search_lidl_kochen, RecipeImportError
+from recipe_import_service import import_from_url, fetch_lidl_category_index, search_lidl_kochen, search_chefkoch, RecipeImportError
 from suggestions_service import suggest_from_pantry, SuggestionsNotConfigured
 
 router = APIRouter(prefix="/api/recipes", tags=["recipes"])
@@ -189,13 +189,18 @@ async def external_search(
         c.setdefault("source_name", "lidl_monsieur_cuisine")
 
     live: list = []
+    chef: list = []
     if q.strip():
         try:
             live = await search_lidl_kochen(q, per_page=limit)
         except Exception:
             live = []
+        try:
+            chef = await search_chefkoch(q, per_page=limit)
+        except Exception:
+            chef = []
 
-    combined = cached + live
+    combined = cached + live + chef
     return {"count": len(combined), "results": combined}
 
 
@@ -206,10 +211,14 @@ async def external_live_search(
     limit: int = 20,
     user: dict = Depends(get_current_user),
 ):
-    if source != "lidl_kochen":
+    if source == "lidl_kochen":
+        fetcher = search_lidl_kochen
+    elif source == "chefkoch":
+        fetcher = search_chefkoch
+    else:
         raise HTTPException(status_code=400, detail="Unbekannte Quelle")
     try:
-        results = await search_lidl_kochen(q, per_page=limit)
+        results = await fetcher(q, per_page=limit)
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Suche fehlgeschlagen: {exc}")
     return {"count": len(results), "results": results}

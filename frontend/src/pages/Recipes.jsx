@@ -133,7 +133,7 @@ export default function Recipes() {
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[color:var(--muted)]" />
                     <input
                         className="cp-input pl-12"
-                        placeholder="Deine Rezepte und rezepte.lidl.ch durchsuchen…"
+                        placeholder="Deine Rezepte und externe Quellen (Lidl, Chefkoch) durchsuchen…"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && runSearch()}
@@ -216,10 +216,10 @@ export default function Recipes() {
                         </h2>
                         <p className="text-xs text-[color:var(--muted)] mt-1">
                             {search
-                                ? "Live-Suche bei rezepte.lidl.ch und lidl-kochen.de"
+                                ? "Live-Suche bei rezepte.lidl.ch, lidl-kochen.de und chefkoch.de"
                                 : extStatus?.count
-                                    ? `${extStatus.count} Lidl-CH Rezepte im Cache · zuletzt aktualisiert ${extStatus.last_indexed_at ? new Date(extStatus.last_indexed_at).toLocaleString("de-DE") : "nie"} · Suche für Lidl-DE einfach oben eingeben`
-                                    : "Tippe oben einen Suchbegriff ein - CookPilot sucht live auf rezepte.lidl.ch und lidl-kochen.de"}
+                                    ? `${extStatus.count} Lidl-CH Rezepte im Cache · zuletzt aktualisiert ${extStatus.last_indexed_at ? new Date(extStatus.last_indexed_at).toLocaleString("de-DE") : "nie"} · Suche durchsucht zusätzlich Lidl-DE und Chefkoch live`
+                                    : "Tippe oben einen Suchbegriff ein - CookPilot sucht live auf rezepte.lidl.ch, lidl-kochen.de und chefkoch.de"}
                         </p>
                     </div>
                     <button onClick={refreshIndex} disabled={refreshing} className="cp-btn-secondary" data-testid="refresh-external-btn">
@@ -236,7 +236,8 @@ export default function Recipes() {
                 ) : (
                     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {external.results.map((r) => {
-                            const srcLabel = r.source_name === "lidl_kochen" ? "Lidl DE" : "Lidl CH";
+                            const srcLabel = r.source_name === "lidl_kochen" ? "Lidl DE" :
+                                              r.source_name === "chefkoch" ? "Chefkoch" : "Lidl CH";
                             return (
                             <div key={`${r.source_name || "lidl"}-${r.slug}`} className="cp-tile flex flex-col gap-3" data-testid={`external-card-${r.slug}`}>
                                 {r.image_url && (
@@ -281,11 +282,11 @@ export default function Recipes() {
                         <div className="cp-kicker mb-2">Rezept-Import</div>
                         <h3 className="font-display text-2xl font-bold mb-4">Aus URL importieren</h3>
                         <p className="text-sm text-[color:var(--muted)] mb-4">
-                            Unterstützt werden aktuell Rezepte von <strong>rezepte.lidl.ch</strong>. Füge einfach die URL eines Rezepts ein.
+                            Unterstützt werden u.a. <strong>rezepte.lidl.ch</strong>, <strong>lidl-kochen.de</strong>, <strong>chefkoch.de</strong> sowie alle Seiten mit JSON-LD Rezept-Daten (Lecker, Kitchen Stories, Fooby, …). Füge einfach die URL eines Rezepts ein.
                         </p>
                         <input
                             className="cp-input mb-4"
-                            placeholder="https://rezepte.lidl.ch/rezepte/..."
+                            placeholder="https://www.chefkoch.de/rezepte/... oder https://rezepte.lidl.ch/..."
                             value={importUrl}
                             onChange={(e) => setImportUrl(e.target.value)}
                             autoFocus

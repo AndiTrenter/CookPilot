@@ -16,9 +16,11 @@ USER_AGENT = "Mozilla/5.0 (compatible; CookPilot/0.3; +https://github.com/cookpi
 
 LIDL_HOST = "rezepte.lidl.ch"
 LIDL_KOCHEN_HOST = "www.lidl-kochen.de"
+CHEFKOCH_HOST = "www.chefkoch.de"
 LIDL_DEFAULT_CATEGORY = "monsieur-cuisine-smart"
 
 LIDL_KOCHEN_SEARCH_URL = "https://www.lidl-kochen.de/search_v2/api/search/recipes"
+CHEFKOCH_SEARCH_URL = "https://www.chefkoch.de/rs/s0/{q}/Rezepte.html"
 
 DIFFICULTY_MAP = {"1": "leicht", "2": "mittel", "3": "schwer"}
 
@@ -203,6 +205,8 @@ async def import_from_url(url: str) -> dict:
         return await import_from_lidl(url)
     if LIDL_KOCHEN_HOST in url:
         return await import_from_jsonld(url, source_prefix="lidl_kochen")
+    if CHEFKOCH_HOST in url:
+        return await import_from_jsonld(url, source_prefix="chefkoch")
     # Generic JSON-LD fallback - works for many recipe sites (chefkoch, lecker, …)
     try:
         return await import_from_jsonld(url, source_prefix="url")
@@ -454,6 +458,60 @@ async def search_lidl_kochen(text: str, per_page: int = 20) -> list[dict]:
             "likes": r.get("likeCount") or 0,
             "source_name": "lidl_kochen",
         })
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Live-Suche Chefkoch.de (HTML-Scrape der Such-Ergebnisseite)
+# ---------------------------------------------------------------------------
+_CHEFKOCH_CARD_RE = re.compile(
+    r'<a[^>]+href="(?P<url>https://www\.chefkoch\.de/rezepte/(?P<slug>\d+/[^"]+)\.html)"[^>]*>'
+    r'(?P<inner>.*?)</a>',
+    re.DOTALL,
+)
+_CHEFKOCH_IMG_RE = re.compile(
+    r'<img[^>]+alt="(?P<alt>[^"]+)"[^>]+src="(?P<src>https://img\.chefkoch-cdn\.de/[^"]+)"',
+    re.DOTALL,
+)
+
+
+async def search_chefkoch(text: str, per_page: int = 20) -> list[dict]:
+    """Scrape https://www.chefkoch.de/rs/s0/<query>/Rezepte.html and return
+    a normalised list of recipe stubs.
+    """
+    q = text.strip()
+    if not q:
+        return []
+    # Chefkoch's search uses /rs/s0/<query>/Rezepte.html - replace spaces with '-'.
+    from urllib.parse import quote
+    url = CHEFKOCH_SEARCH_URL.format(q=quote(q.replace(" ", "-"), safe=""))
+    async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
+        resp = await client.get(url, headers={"User-Agent": USER_AGENT, "Accept-Language": "de-DE,de;q=0.9"})
+        resp.raise_for_status()
+        html = resp.text
+    out: list[dict] = []
+    seen: set[str] = set()
+    for m in _CHEFKOCH_CARD_RE.finditer(html):
+        slug = m.group("slug")
+        if slug in seen:
+            continue
+        inner = m.group("inner")
+        img_m = _CHEFKOCH_IMG_RE.search(inner)
+        if not img_m:
+            continue  # no image -> probably a teaser/category link, skip
+        seen.add(slug)
+        out.append({
+            "slug": slug.split("/", 1)[0],  # numeric ID
+            "title": img_m.group("alt").strip(),
+            "image_url": img_m.group("src"),
+            "source_url": m.group("url"),
+            "cook_time_min": None,
+            "difficulty": None,
+            "likes": 0,
+            "source_name": "chefkoch",
+        })
+        if len(out) >= per_page:
+            break
     return out
 
 
