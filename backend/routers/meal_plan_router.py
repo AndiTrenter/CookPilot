@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 import uuid
 from db import db, recipes, pantry_items, shopping_items
 from auth import get_current_user
+from routers.shopping_router import round_up_to_pack
 
 router = APIRouter(prefix="/api/meal-plan", tags=["meal-plan"])
 
@@ -165,6 +166,8 @@ async def generate_shopping_list(body: GenerateRequest, user: dict = Depends(get
     for key, n in needed.items():
         if n["amount"] <= 0:
             continue
+        # Round up to next typical pack size if the catalog has the product.
+        n["amount"], _rounded = await round_up_to_pack(n["name"], n["unit"], n["amount"])
         if key in existing_idx:
             ex = existing_idx[key]
             new_amount = round((ex.get("amount") or 0) + n["amount"], 2)

@@ -1,8 +1,9 @@
 """Shopping list routes."""
+import math
 from typing import List
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
-from db import shopping_items, recipes, pantry_items
+from db import shopping_items, recipes, pantry_items, products
 from auth import get_current_user
 from models import ShoppingItem, ShoppingItemCreate, ShoppingItemUpdate, AddRecipeIngredientsRequest
 
@@ -12,6 +13,36 @@ router = APIRouter(prefix="/api/shopping", tags=["shopping"])
 def _norm(s: str) -> str:
     """Normalize a string for case-/whitespace-insensitive comparison."""
     return (s or "").strip().lower()
+
+
+async def round_up_to_pack(name: str, unit: str, amount: float) -> tuple[float, bool]:
+    """If a product matching `name` has a pack_size in the same `unit`, round
+    `amount` up to the next pack multiple. Returns (rounded_amount, was_rounded).
+    """
+    if not name or amount <= 0:
+        return amount, False
+    name_norm = _norm(name)
+    unit_norm = _norm(unit)
+    p = await products.find_one(
+        {
+            "$or": [
+                {"name": {"$regex": f"^{name_norm}$", "$options": "i"}},
+                {"aliases": {"$elemMatch": {"$regex": f"^{name_norm}$", "$options": "i"}}},
+            ]
+        },
+        {"_id": 0, "default_unit": 1, "pack_size": 1},
+    )
+    if not p:
+        return amount, False
+    pack = float(p.get("pack_size") or 0)
+    if pack <= 0:
+        return amount, False
+    # Only round when the unit matches (or both empty) - we don't convert kg<->g here.
+    if _norm(p.get("default_unit") or "") != unit_norm:
+        return amount, False
+    packs = math.ceil(amount / pack)
+    rounded = round(packs * pack, 3)
+    return (rounded, True) if rounded != amount else (amount, False)
 
 
 @router.get("", response_model=List[ShoppingItem])
@@ -129,6 +160,8 @@ async def add_from_low_stock(user: dict = Depends(get_current_user)):
             continue
         name = (p.get("name") or "").strip()
         unit = (p.get("unit") or "").strip()
+        # Round up to next typical pack size if the catalog knows this product.
+        diff, _rounded = await round_up_to_pack(name, unit, diff)
         key = f"{_norm(name)}|{_norm(unit)}"
 
         if key in existing_idx:

@@ -108,8 +108,8 @@ async def on_startup():
     logger.info("CookPilot startup - v%s", APP_VERSION)
     await seed_admin()
     inserted = await seed_products()
-    if inserted:
-        logger.info("Produkt-Katalog: %d neue Einträge angelegt", inserted)
+    if inserted["inserted"] or inserted["updated"]:
+        logger.info("Produkt-Katalog: %d neue, %d aktualisiert (pack_size)", inserted["inserted"], inserted["updated"])
 
 
 @app.on_event("shutdown")
